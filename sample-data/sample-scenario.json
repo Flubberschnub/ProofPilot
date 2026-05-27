@@ -1,0 +1,8 @@
+{
+  "apiName": "Acme Document Extraction API",
+  "industry": "Insurance",
+  "audience": "executive",
+  "goal": "Show how a regional insurance company could reduce manual claim intake work by uploading claim PDFs, extracting fields, reviewing uncertain values, and exporting approved data.",
+  "preferredStack": "React + Node",
+  "liveApiAllowed": false
+}
