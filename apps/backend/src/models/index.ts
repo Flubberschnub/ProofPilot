@@ -26,7 +26,8 @@ export function createModelClient(env: NodeJS.ProcessEnv): ModelClient {
       env.VERTEX_PROJECT_ID ?? env.GOOGLE_CLOUD_PROJECT,
       env.VERTEX_LOCATION ?? "us-central1",
       env.VERTEX_ACCESS_TOKEN,
-      env.VERTEX_MODEL ?? env.PROOFPILOT_MODEL ?? "gemini-2.0-flash"
+      env.VERTEX_MODEL ?? env.PROOFPILOT_MODEL ?? "gemini-2.0-flash",
+      env.VERTEX_USE_METADATA_TOKEN !== "false"
     );
   }
 

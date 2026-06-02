@@ -52,6 +52,7 @@ GEMINI_MODEL=gemini-2.0-flash
 VERTEX_PROJECT_ID=
 VERTEX_LOCATION=us-central1
 VERTEX_ACCESS_TOKEN=
+VERTEX_USE_METADATA_TOKEN=true
 VERTEX_MODEL=gemini-2.0-flash
 PROOFPILOT_ELASTIC_PROVIDER=memory
 ELASTIC_URL=http://localhost:9200
@@ -119,7 +120,7 @@ MOCK_MODE=false
 PROOFPILOT_MODEL_PROVIDER=vertex
 VERTEX_PROJECT_ID=your-gcp-project
 VERTEX_LOCATION=us-central1
-VERTEX_ACCESS_TOKEN="$(gcloud auth print-access-token)"
+VERTEX_ACCESS_TOKEN="$(gcloud auth print-access-token)" # local only; Cloud Run uses metadata tokens
 VERTEX_MODEL=gemini-2.0-flash
 ```
 

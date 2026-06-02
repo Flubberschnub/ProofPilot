@@ -16,12 +16,13 @@ export class VertexModelClient implements ModelClient {
     private readonly projectId: string | undefined,
     private readonly location = "us-central1",
     private readonly accessToken: string | undefined,
-    private readonly model = "gemini-2.0-flash"
+    private readonly model = "gemini-2.0-flash",
+    private readonly allowMetadataToken = true
   ) {
     this.metadata = {
       provider: "vertex",
       model,
-      configured: Boolean(projectId && accessToken),
+      configured: Boolean(projectId && (accessToken || allowMetadataToken)),
       mode: "live"
     };
   }
@@ -30,15 +31,13 @@ export class VertexModelClient implements ModelClient {
     if (!this.projectId) {
       throw new Error("VERTEX_PROJECT_ID is required when PROOFPILOT_MODEL_PROVIDER=vertex.");
     }
-    if (!this.accessToken) {
-      throw new Error("VERTEX_ACCESS_TOKEN is required when PROOFPILOT_MODEL_PROVIDER=vertex.");
-    }
+    const accessToken = await this.resolveAccessToken();
 
     const url = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this.model}:generateContent`;
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${this.accessToken}`,
+        "Authorization": `Bearer ${accessToken}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -65,6 +64,25 @@ export class VertexModelClient implements ModelClient {
       responseMimeType: "application/json"
     });
     return parseJsonResponse<T>(text);
+  }
+
+  private async resolveAccessToken() {
+    if (this.accessToken) return this.accessToken;
+    if (!this.allowMetadataToken) {
+      throw new Error("VERTEX_ACCESS_TOKEN is required when metadata token lookup is disabled.");
+    }
+
+    const response = await fetch("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", {
+      headers: { "Metadata-Flavor": "Google" }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Could not fetch Cloud Run metadata access token (${response.status}). Set VERTEX_ACCESS_TOKEN for local Vertex tests.`);
+    }
+
+    const token = await response.json() as { access_token?: string };
+    if (!token.access_token) throw new Error("Cloud Run metadata token response did not include access_token.");
+    return token.access_token;
   }
 }
 
