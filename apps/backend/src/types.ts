@@ -64,3 +64,10 @@ export type GeneratedFile = {
   path: string;
   content: string;
 };
+
+export type ModelRunInfo = {
+  provider: "mock" | "gemini" | "vertex";
+  model: string;
+  configured: boolean;
+  mode: "mock" | "live";
+};

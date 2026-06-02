@@ -1,8 +1,121 @@
 import type { ApiCapability, ClaimReport, DemoClaim, DemoPlan, DemoRequest, SourceChunk } from "../types.js";
+import { getModelClient } from "../models/index.js";
 import { retrieveEvidence } from "./elastic.js";
 
 export async function extractCapabilities(input: DemoRequest, chunks: SourceChunk[]): Promise<ApiCapability[]> {
-  // Mock mode heuristic extraction. Replace with Gemini structured output.
+  const fallback = () => heuristicExtractCapabilities(chunks);
+  const responseFallback = () => ({ capabilities: fallback() });
+  const response = await getModelClient().generateJson<{ capabilities: ApiCapability[] }>({
+    schemaName: "CapabilityExtraction",
+    system: agentSystemPrompt(),
+    prompt: [
+      `Extract API capabilities for ${input.apiName}.`,
+      `Target industry: ${input.industry}.`,
+      `Target audience: ${input.audience}.`,
+      `Demo goal: ${input.goal}`,
+      "Use only the provided source chunks. Include evidenceChunkIds that support each capability.",
+      "",
+      "Source chunks:",
+      JSON.stringify(chunks.map((chunk) => ({
+        id: chunk.id,
+        title: chunk.title,
+        text: chunk.text
+      })), null, 2)
+    ].join("\n"),
+    schema: {
+      capabilities: [{
+        name: "short capability name",
+        description: "plain-language description",
+        endpoints: ["METHOD /path"],
+        businessUseCases: ["workflow use case"],
+        evidenceChunkIds: ["chunk_id"]
+      }]
+    },
+    fallback: responseFallback
+  });
+
+  return normalizeCapabilities(response.capabilities, chunks, fallback);
+}
+
+export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapability[]): Promise<DemoPlan> {
+  const fallback = () => heuristicDemoPlan(input, capabilities);
+  const response = await getModelClient().generateJson<DemoPlan>({
+    schemaName: "DemoPlan",
+    system: agentSystemPrompt(),
+    prompt: [
+      `Create a concise source-grounded demo plan for ${input.apiName}.`,
+      `Industry: ${input.industry}`,
+      `Audience: ${input.audience}`,
+      `Goal: ${input.goal}`,
+      `Preferred stack: ${input.preferredStack ?? "not specified"}`,
+      "",
+      "Capabilities:",
+      JSON.stringify(capabilities, null, 2),
+      "",
+      "Generate a realistic demo plan. Keep claims testable against the capabilities and documentation evidence."
+    ].join("\n"),
+    schema: {
+      id: "plan_default",
+      title: "demo title",
+      story: "one paragraph buyer story",
+      screens: ["screen names"],
+      endpointsUsed: ["METHOD /path"],
+      sampleDataNeeded: ["sample data item"],
+      implementationSteps: ["step"],
+      businessValue: ["business value"],
+      claims: [{ id: "claim_1", text: "testable claim" }]
+    },
+    fallback
+  });
+
+  return normalizeDemoPlan(response, fallback);
+}
+
+export async function validateClaims(sourceId: string, claims: DemoClaim[]): Promise<ClaimReport> {
+  const checkedClaims = [];
+
+  for (const claim of claims) {
+    const evidence = await retrieveEvidence(sourceId, claim.text, 3);
+    const fallback = () => heuristicClaimCheck(claim, evidence);
+    const result = await getModelClient().generateJson<{ status: DemoClaim["status"]; rewrite?: string }>({
+      schemaName: "ClaimValidation",
+      system: agentSystemPrompt(),
+      prompt: [
+        "Validate the claim against the evidence.",
+        "Use status supported only when the evidence directly supports the claim.",
+        "Use inferred for reasonable but indirect support, marketing for qualified impact/value claims, unsupported for contradicted or absent proof, and unknown when evidence is insufficient.",
+        "",
+        `Claim: ${claim.text}`,
+        "",
+        "Evidence chunks:",
+        JSON.stringify(evidence.map((chunk) => ({
+          id: chunk.id,
+          title: chunk.title,
+          text: chunk.text
+        })), null, 2)
+      ].join("\n"),
+      schema: {
+        status: "supported | inferred | unsupported | marketing | unknown",
+        rewrite: "optional safer wording when unsupported or marketing"
+      },
+      fallback
+    });
+
+    checkedClaims.push({
+      ...claim,
+      status: normalizeClaimStatus(result.status),
+      evidenceChunkIds: evidence.map((e) => e.id),
+      rewrite: result.rewrite
+    });
+  }
+
+  const summary = { supported: 0, inferred: 0, unsupported: 0, marketing: 0, unknown: 0 };
+  for (const claim of checkedClaims) summary[claim.status ?? "unknown"]++;
+
+  return { claims: checkedClaims as ClaimReport["claims"], summary };
+}
+
+function heuristicExtractCapabilities(chunks: SourceChunk[]): ApiCapability[] {
   const endpoints = chunks.flatMap((chunk) => [...chunk.text.matchAll(/\b(GET|POST|PUT|PATCH|DELETE)\s+(\/[^\s`]+)/g)]
     .map((m) => `${m[1]} ${m[2]}`));
 
@@ -33,7 +146,7 @@ export async function extractCapabilities(input: DemoRequest, chunks: SourceChun
   return capabilities;
 }
 
-export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapability[]): Promise<DemoPlan> {
+function heuristicDemoPlan(input: DemoRequest, capabilities: ApiCapability[]): DemoPlan {
   const title = input.industry.toLowerCase().includes("insurance")
     ? "ClaimFlow: API-Powered Claims Intake Demo"
     : `${input.apiName} Bespoke API Demo`;
@@ -73,37 +186,67 @@ export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapa
   };
 }
 
-export async function validateClaims(sourceId: string, claims: DemoClaim[]): Promise<ClaimReport> {
-  const checkedClaims = [];
+function heuristicClaimCheck(claim: DemoClaim, evidence: SourceChunk[]) {
+  const evidenceText = evidence.map((e) => `${e.title}\n${e.text}`).join("\n").toLowerCase();
+  const lower = claim.text.toLowerCase();
 
-  for (const claim of claims) {
-    const evidence = await retrieveEvidence(sourceId, claim.text, 3);
-    const evidenceText = evidence.map((e) => `${e.title}\n${e.text}`).join("\n").toLowerCase();
-    const lower = claim.text.toLowerCase();
+  let status: DemoClaim["status"] = evidence.length ? "inferred" : "unknown";
+  let rewrite: string | undefined;
 
-    let status: DemoClaim["status"] = evidence.length ? "inferred" : "unknown";
-    let rewrite: string | undefined;
-
-    if (/directly integrates|guarantees|70%|specific savings/i.test(lower)) {
-      status = "unsupported";
-      rewrite = claim.text.replace(/directly integrates with the customer's existing core system/i, "can export data for connection through the customer's integration layer");
-    } else if (/marketing note|reduce manual|time savings/i.test(evidenceText + lower)) {
-      status = "marketing";
-      rewrite = claim.text.includes("exact") ? claim.text : `${claim.text} Exact impact depends on workflow design and document quality.`;
-    } else if (evidence.length >= 1) {
-      status = "supported";
-    }
-
-    checkedClaims.push({
-      ...claim,
-      status,
-      evidenceChunkIds: evidence.map((e) => e.id),
-      rewrite
-    });
+  if (/directly integrates|guarantees|70%|specific savings/i.test(lower)) {
+    status = "unsupported";
+    rewrite = claim.text.replace(/directly integrates with the customer's existing core system/i, "can export data for connection through the customer's integration layer");
+  } else if (/marketing note|reduce manual|time savings/i.test(evidenceText + lower)) {
+    status = "marketing";
+    rewrite = claim.text.includes("exact") ? claim.text : `${claim.text} Exact impact depends on workflow design and document quality.`;
+  } else if (evidence.length >= 1) {
+    status = "supported";
   }
 
-  const summary = { supported: 0, inferred: 0, unsupported: 0, marketing: 0, unknown: 0 };
-  for (const claim of checkedClaims) summary[claim.status ?? "unknown"]++;
+  return { status, rewrite };
+}
 
-  return { claims: checkedClaims as ClaimReport["claims"], summary };
+function normalizeCapabilities(capabilities: ApiCapability[] | undefined, chunks: SourceChunk[], fallback: () => ApiCapability[]) {
+  if (!Array.isArray(capabilities) || !capabilities.length) return fallback();
+
+  const chunkIds = new Set(chunks.map((chunk) => chunk.id));
+  return capabilities.map((capability, index) => ({
+    name: capability.name || `Capability ${index + 1}`,
+    description: capability.description || "",
+    endpoints: Array.isArray(capability.endpoints) ? capability.endpoints.filter(Boolean) : [],
+    businessUseCases: Array.isArray(capability.businessUseCases) ? capability.businessUseCases.filter(Boolean) : [],
+    evidenceChunkIds: Array.isArray(capability.evidenceChunkIds)
+      ? capability.evidenceChunkIds.filter((id) => chunkIds.has(id))
+      : []
+  })).filter((capability) => capability.name && (capability.description || capability.endpoints.length || capability.evidenceChunkIds.length));
+}
+
+function normalizeDemoPlan(plan: DemoPlan | undefined, fallback: () => DemoPlan): DemoPlan {
+  if (!plan || !Array.isArray(plan.screens) || !Array.isArray(plan.claims)) return fallback();
+
+  return {
+    id: plan.id || "plan_default",
+    title: plan.title || fallback().title,
+    story: plan.story || fallback().story,
+    screens: plan.screens.filter(Boolean),
+    endpointsUsed: Array.isArray(plan.endpointsUsed) ? plan.endpointsUsed.filter(Boolean) : [],
+    sampleDataNeeded: Array.isArray(plan.sampleDataNeeded) ? plan.sampleDataNeeded.filter(Boolean) : [],
+    implementationSteps: Array.isArray(plan.implementationSteps) ? plan.implementationSteps.filter(Boolean) : [],
+    businessValue: Array.isArray(plan.businessValue) ? plan.businessValue.filter(Boolean) : [],
+    claims: plan.claims.map((claim, index) => ({
+      id: claim.id || `claim_${index + 1}`,
+      text: claim.text
+    })).filter((claim) => claim.text)
+  };
+}
+
+function normalizeClaimStatus(status: DemoClaim["status"]): NonNullable<DemoClaim["status"]> {
+  if (status === "supported" || status === "inferred" || status === "unsupported" || status === "marketing" || status === "unknown") {
+    return status;
+  }
+  return "unknown";
+}
+
+function agentSystemPrompt() {
+  return "You are ProofPilot's source-grounded API demo planning agent. Prefer precise, testable claims over broad marketing language.";
 }

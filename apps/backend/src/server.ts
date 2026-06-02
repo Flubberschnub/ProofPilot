@@ -2,6 +2,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import { z } from "zod";
+import { describeModelClient } from "./models/index.js";
 import { runProofPilotWorkflow } from "./workflow.js";
 
 dotenv.config();
@@ -21,7 +22,11 @@ const requestSchema = z.object({
 });
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "proofpilot-backend" });
+  res.json({ ok: true, service: "proofpilot-backend", model: describeModelClient() });
+});
+
+app.get("/api/models/current", (_req, res) => {
+  res.json(describeModelClient());
 });
 
 app.post("/api/workflow/run", async (req, res, next) => {

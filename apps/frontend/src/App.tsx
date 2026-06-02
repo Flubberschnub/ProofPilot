@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 type WorkflowResult = {
+  model: { provider: string; model: string; configured: boolean; mode: string };
   chunksIndexed: number;
   capabilities: Array<{ name: string; description: string; endpoints: string[] }>;
   plan: {
@@ -119,6 +120,7 @@ export default function App() {
           <section className="card">
             <h2>2. Generated plan</h2>
             {!result ? <p className="muted">Run the workflow to generate a plan.</p> : <>
+              <p className="muted">Model: {result.model.provider} / {result.model.model}</p>
               <h3>{result.plan.title}</h3>
               <p>{result.plan.story}</p>
               <div className="chips">{result.plan.screens.map((s) => <span key={s}>{s}</span>)}</div>

@@ -1,11 +1,13 @@
 import { nanoid } from "nanoid";
 import type { DemoRequest } from "./types.js";
+import { describeModelClient } from "./models/index.js";
 import { extractCapabilities, generateDemoPlan, validateClaims } from "./services/agent.js";
 import { indexDocs } from "./services/elastic.js";
 import { generateDemoFiles } from "./services/generator.js";
 import { exportToGitLab } from "./services/gitlab.js";
 
 export async function runProofPilotWorkflow(input: DemoRequest) {
+  const model = describeModelClient();
   const sourceId = `src_${nanoid(8)}`;
   const chunks = await indexDocs(sourceId, input.apiName, input.docsText);
 
@@ -16,6 +18,7 @@ export async function runProofPilotWorkflow(input: DemoRequest) {
   const gitlab = await exportToGitLab(`${slugify(plan.title)}-demo`, files);
 
   return {
+    model,
     sourceId,
     chunksIndexed: chunks.length,
     capabilities,
