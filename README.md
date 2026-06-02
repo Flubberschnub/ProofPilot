@@ -31,10 +31,12 @@ Run frontend:
 ```bash
 cd apps/frontend
 npm install
-npm run dev
+VITE_API_BASE_URL=http://localhost:8080 npm run dev
 ```
 
 Open the frontend URL printed by Vite. The backend defaults to mock mode and does not require real Elastic, Gemini, or GitLab credentials.
+
+For production frontend hosting, set `API_BASE_URL` to the deployed backend URL. The frontend writes that value to `/config.js` at container startup, so the same built image can move between projects or backend services.
 
 ## Environment
 
@@ -150,6 +152,33 @@ MOCK_MODE=false
 GITLAB_TOKEN=your-token
 GITLAB_BASE_URL=https://gitlab.com
 GITLAB_NAMESPACE_ID=optional-group-or-user-id
+```
+
+## Deploy frontend
+
+The most portable GCP path is two Cloud Run services:
+
+1. Deploy `proofpilot-backend`.
+2. Capture its service URL.
+3. Deploy `proofpilot-frontend` with `API_BASE_URL` set to the backend URL.
+
+```bash
+BACKEND_URL="$(gcloud run services describe proofpilot-backend --region us-central1 --format='value(status.url)')"
+
+gcloud run deploy proofpilot-frontend \
+  --source apps/frontend \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars "API_BASE_URL=$BACKEND_URL"
+```
+
+For a purely static option, build the frontend with `VITE_API_BASE_URL` set and deploy `apps/frontend/dist` to Firebase Hosting:
+
+```bash
+cd apps/frontend
+VITE_API_BASE_URL="$BACKEND_URL" npm run build
+firebase init hosting
+firebase deploy --only hosting
 ```
 
 ## MVP flow

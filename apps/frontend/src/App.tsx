@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { apiUrl } from "./config";
 
 type WorkflowResult = {
   model: { provider: string; model: string; configured: boolean; mode: string };
@@ -76,7 +77,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:8080/api/workflow/run", {
+      const response = await fetch(apiUrl("/api/workflow/run"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
