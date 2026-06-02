@@ -2,6 +2,18 @@ import { useMemo, useState } from "react";
 
 type WorkflowResult = {
   model: { provider: string; model: string; configured: boolean; mode: string };
+  agentRuntime: { mode: string; description: string };
+  agents: Array<{
+    id: string;
+    name: string;
+    description: string;
+    tools: string[];
+    status: string;
+    durationMs: number;
+    inputSummary: string;
+    outputSummary: string;
+    error?: string;
+  }>;
   chunksIndexed: number;
   capabilities: Array<{ name: string; description: string; endpoints: string[] }>;
   plan: {
@@ -16,7 +28,11 @@ type WorkflowResult = {
     summary: Record<string, number>;
   };
   files: Array<{ path: string; content: string }>;
-  gitlab: { mode: string; url: string; message: string; filesCommitted: number };
+  packageCheck: {
+    status: string;
+    checks: Array<{ name: string; status: string; message: string }>;
+  };
+  gitlab: { mode: string; url: string | null; message: string; filesCommitted: number; localPath?: string };
 };
 
 const sampleDocs = `# Acme Document Extraction API
@@ -120,11 +136,27 @@ export default function App() {
           <section className="card">
             <h2>2. Generated plan</h2>
             {!result ? <p className="muted">Run the workflow to generate a plan.</p> : <>
-              <p className="muted">Model: {result.model.provider} / {result.model.model}</p>
+              <p className="muted">Runtime: {result.agentRuntime.mode}. Model: {result.model.provider} / {result.model.model}</p>
               <h3>{result.plan.title}</h3>
               <p>{result.plan.story}</p>
               <div className="chips">{result.plan.screens.map((s) => <span key={s}>{s}</span>)}</div>
             </>}
+          </section>
+
+          <section className="card">
+            <h2>Agent pipeline</h2>
+            {!result ? <p className="muted">Each README MVP step will appear here as a completed agent run.</p> : <div className="agent-list">
+              {result.agents.map((agent) => (
+                <article key={agent.id} className="agent-row">
+                  <div>
+                    <strong>{agent.name}</strong>
+                    <p>{agent.outputSummary || agent.error}</p>
+                    <small>{agent.tools.join(", ")}</small>
+                  </div>
+                  <span className={`badge ${agent.status}`}>{agent.durationMs}ms</span>
+                </article>
+              ))}
+            </div>}
           </section>
 
           <section className="card">
@@ -138,8 +170,9 @@ export default function App() {
           <section className="card">
             <h2>4. Generated package</h2>
             {!result ? <p className="muted">Generated files and GitLab export appear here.</p> : <>
-              <p><strong>{result.files.length}</strong> files generated. GitLab mode: <strong>{result.gitlab.mode}</strong></p>
-              <a href={result.gitlab.url}>{result.gitlab.url}</a>
+              <p><strong>{result.files.length}</strong> files generated. Package check: <strong>{result.packageCheck.status}</strong>. GitLab mode: <strong>{result.gitlab.mode}</strong></p>
+              {result.gitlab.url && <a href={result.gitlab.url}>{result.gitlab.url}</a>}
+              {result.gitlab.localPath && <p className="muted">Local export: <code>{result.gitlab.localPath}</code></p>}
               <ul>{filePreview.map((f) => <li key={f.path}><code>{f.path}</code></li>)}</ul>
             </>}
           </section>

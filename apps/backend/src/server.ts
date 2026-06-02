@@ -2,6 +2,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import { z } from "zod";
+import { createAgentContext } from "./agents/runtime.js";
+import { listWorkflowAgents } from "./agents/workflow-agents.js";
 import { describeModelClient } from "./models/index.js";
 import { runProofPilotWorkflow } from "./workflow.js";
 
@@ -22,11 +24,19 @@ const requestSchema = z.object({
 });
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "proofpilot-backend", model: describeModelClient() });
+  const model = describeModelClient();
+  res.json({ ok: true, service: "proofpilot-backend", model, agentRuntime: createAgentContext(model).runtime });
 });
 
 app.get("/api/models/current", (_req, res) => {
   res.json(describeModelClient());
+});
+
+app.get("/api/agents", (_req, res) => {
+  res.json({
+    runtime: createAgentContext(describeModelClient()).runtime,
+    agents: listWorkflowAgents()
+  });
 });
 
 app.post("/api/workflow/run", async (req, res, next) => {
