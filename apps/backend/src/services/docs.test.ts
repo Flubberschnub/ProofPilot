@@ -33,4 +33,26 @@ describe("resolveWorkflowDocs", () => {
     expect(resolved.docsText).toContain("POST /payments");
     expect(resolved.docsText).not.toContain("pasted fallback");
   });
+
+  it("does not fail with a raw JSON parse error when fetched docs are malformed JSON", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(`{
+      "openapi": "3.0.0",
+      "info": { "title": "Malformed but readable API docs" },
+      "paths": { "/customers": { "get": { "summary": "List customers" } } }
+    `, {
+      headers: { "content-type": "application/json" }
+    })));
+
+    const resolved = await resolveWorkflowDocs({
+      apiName: "Malformed API",
+      docsUrl: "https://example.com/openapi.json",
+      industry: "SaaS",
+      audience: "technical",
+      goal: "Show how an operations team can list and inspect customer records.",
+      liveApiAllowed: false
+    });
+
+    expect(resolved.docsText).toContain("could not be parsed");
+    expect(resolved.docsText).toContain("/customers");
+  });
 });

@@ -62,12 +62,15 @@ async function fetchDocsFromUrl(docsUrl: string) {
 
 function extractDocsText(raw: string, contentType: string) {
   if (/json/i.test(contentType) || looksLikeJson(raw)) {
-    return stringifyStructuredDocs(JSON.parse(raw));
+    const parsed = tryParseJson(raw);
+    if (parsed.ok) return stringifyStructuredDocs(parsed.value);
+    return fallbackText(raw, `Fetched docs looked like JSON but could not be parsed: ${parsed.error}`);
   }
 
   if (/ya?ml/i.test(contentType) || looksLikeYaml(raw)) {
-    const parsed = yaml.load(raw);
-    return stringifyStructuredDocs(parsed);
+    const parsed = tryParseYaml(raw);
+    if (parsed.ok) return stringifyStructuredDocs(parsed.value);
+    return fallbackText(raw, `Fetched docs looked like YAML but could not be parsed: ${parsed.error}`);
   }
 
   if (/html/i.test(contentType) || /<html|<body|<main|<article/i.test(raw)) {
@@ -75,6 +78,27 @@ function extractDocsText(raw: string, contentType: string) {
   }
 
   return raw;
+}
+
+function tryParseJson(raw: string): { ok: true; value: unknown } | { ok: false; error: string } {
+  try {
+    return { ok: true, value: JSON.parse(raw) };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Invalid JSON" };
+  }
+}
+
+function tryParseYaml(raw: string): { ok: true; value: unknown } | { ok: false; error: string } {
+  try {
+    return { ok: true, value: yaml.load(raw) };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Invalid YAML" };
+  }
+}
+
+function fallbackText(raw: string, reason: string) {
+  const text = /<html|<body|<main|<article/i.test(raw) ? htmlToText(raw) : raw;
+  return `${reason}\n\n${text}`;
 }
 
 function stringifyStructuredDocs(value: unknown) {

@@ -111,8 +111,14 @@ export default function App() {
           liveApiAllowed: false
         })
       });
-      if (!response.ok) throw new Error(await response.text());
-      setResult(await response.json());
+      const responseText = await response.text();
+      if (!response.ok) throw new Error(responseText || `Workflow failed with status ${response.status}`);
+      if (!responseText.trim()) throw new Error("Workflow returned an empty response.");
+      try {
+        setResult(JSON.parse(responseText));
+      } catch {
+        throw new Error(`Workflow returned a non-JSON response: ${responseText.slice(0, 500)}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
