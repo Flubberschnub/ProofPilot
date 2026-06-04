@@ -472,45 +472,98 @@ export default function App() {
                   {/* TAB: README / SETUP */}
                   {activeTab === "readme" && (
                     <div style={{ textAlign: "left" }}>
-                      <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "20px" }}>
-                        <h4 style={{ margin: "0 0 8px 0", color: "#1e293b" }}>📦 Delivery Package</h4>
-                        <p style={{ margin: "0 0 10px 0", fontSize: "13px" }}>
-                          Files generated: <strong>{result.files?.length ?? 0}</strong> | Package status: <strong style={{ color: result.packageCheck.status === "passed" ? "#166534" : "#b91c1c" }}>{result.packageCheck.status}</strong>
-                        </p>
-                        
-                        {artifactDownloadUrl && (
-                          <p style={{ margin: "0 0 8px 0", fontSize: "13px" }}>
-                            📥 <a href={artifactDownloadUrl} download={artifact?.fileName} style={{ color: "#4f46e5", fontWeight: 600, textDecoration: "underline" }}>
-                              Download demo zip
-                            </a>
-                            {artifact?.sizeBytes && <span style={{ fontSize: "11px", color: "#71717a", marginLeft: "6px" }}>({Math.round(artifact.sizeBytes / 1024)} KB)</span>}
-                          </p>
-                        )}
+                      <div style={{ background: "#f8fafc", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: "20px" }}>
+                        <h3 style={{ margin: "0 0 12px 0", color: "#0f172a", fontSize: "16px", fontWeight: 700 }}>📦 Delivery Package</h3>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
+                          <span style={{ background: "#e2e8f0", color: "#334155", padding: "4px 8px", borderRadius: "6px", fontSize: "12px", fontWeight: 600 }}>
+                            Files: {result.files?.length ?? 0}
+                          </span>
+                          <span style={{
+                            padding: "4px 8px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            background: result.packageCheck.status === "passed" ? "#dcfce7" : "#fee2e2",
+                            color: result.packageCheck.status === "passed" ? "#15803d" : "#b91c1c"
+                          }}>
+                            Package Check: {result.packageCheck.status}
+                          </span>
+                        </div>
 
-                        {result.gitlab.url && (
-                          <p style={{ margin: "0 0 8px 0", fontSize: "13px" }}>
-                            🦊 <a href={result.gitlab.url} target="_blank" rel="noopener noreferrer" style={{ color: "#4f46e5", fontWeight: 600, textDecoration: "underline" }}>
-                              View GitLab Repository
+                        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                          {artifactDownloadUrl && (
+                            <a
+                              href={artifactDownloadUrl}
+                              download={artifact?.fileName}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                background: "#4f46e5",
+                                color: "white",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                textDecoration: "none",
+                                fontWeight: 600,
+                                fontSize: "13px",
+                                gap: "6px",
+                                transition: "background 0.2s"
+                              }}
+                              onMouseOver={(e) => (e.currentTarget.style.background = "#4338ca")}
+                              onMouseOut={(e) => (e.currentTarget.style.background = "#4f46e5")}
+                            >
+                              📥 Download Demo ZIP
+                              {artifact?.sizeBytes && (
+                                <span style={{ fontSize: "11px", opacity: 0.8, fontWeight: 400 }}>
+                                  ({Math.round(artifact.sizeBytes / 1024)} KB)
+                                </span>
+                              )}
                             </a>
-                          </p>
-                        )}
+                          )}
+
+                          {result.gitlab.url && (
+                            <a
+                              href={result.gitlab.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                background: "#0f172a",
+                                color: "white",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                textDecoration: "none",
+                                fontWeight: 600,
+                                fontSize: "13px",
+                                gap: "6px",
+                                transition: "background 0.2s"
+                              }}
+                              onMouseOver={(e) => (e.currentTarget.style.background = "#1e293b")}
+                              onMouseOut={(e) => (e.currentTarget.style.background = "#0f172a")}
+                            >
+                              🦊 View Repository
+                            </a>
+                          )}
+                        </div>
 
                         {result.gitlab.localPath && (
-                          <p style={{ margin: 0, fontSize: "12px", color: "#475569" }}>
-                            📁 Local export: <code>{result.gitlab.localPath}</code>
-                          </p>
+                          <div style={{ marginTop: "14px", fontSize: "12px", color: "#64748b", borderTop: "1px solid #e2e8f0", paddingTop: "12px" }}>
+                            📁 Local Folder Export Path: <code style={{ wordBreak: "break-all" }}>{result.gitlab.localPath}</code>
+                          </div>
                         )}
                       </div>
 
-                      <ReactMarkdown
-                        components={{
-                          a: ({ node, ...props }) => (
-                            <a {...props} target="_blank" rel="noopener noreferrer" />
-                          )
-                        }}
-                      >
-                        {result.files.find(f => f.path.toLowerCase() === 'readme.md')?.content || "# Setup Guide\n\nNo README.md file generated in this package."}
-                      </ReactMarkdown>
+                      <div className="markdown-body" style={{ marginTop: "24px" }}>
+                        <ReactMarkdown
+                          components={{
+                            a: ({ node, ...props }) => (
+                              <a {...props} target="_blank" rel="noopener noreferrer" />
+                            )
+                          }}
+                        >
+                          {result.files.find(f => f.path.toLowerCase() === 'readme.md')?.content || "# Setup Guide\n\nNo README.md file generated in this package."}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   )}
                 </div>
