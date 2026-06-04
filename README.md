@@ -48,14 +48,14 @@ MOCK_MODE=true
 PROOFPILOT_AGENT_RUNTIME=bespoke
 PROOFPILOT_LOCAL_EXPORT_DIR=../../.generated/demos
 PROOFPILOT_MODEL_PROVIDER=mock
-PROOFPILOT_MODEL=gemini-2.0-flash
+PROOFPILOT_MODEL=gemini-3.5-flash
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=gemini-3.5-flash
 VERTEX_PROJECT_ID=
-VERTEX_LOCATION=us-central1
+VERTEX_LOCATION=global
 VERTEX_ACCESS_TOKEN=
 VERTEX_USE_METADATA_TOKEN=true
-VERTEX_MODEL=gemini-2.0-flash
+VERTEX_MODEL=gemini-3.5-flash
 PROOFPILOT_ELASTIC_PROVIDER=memory
 ELASTIC_URL=http://localhost:9200
 ELASTIC_API_KEY=
@@ -112,7 +112,7 @@ Run with the Gemini API:
 MOCK_MODE=false
 PROOFPILOT_MODEL_PROVIDER=gemini
 GEMINI_API_KEY=your-api-key
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=gemini-3.5-flash
 ```
 
 Run with Vertex AI:
@@ -121,9 +121,9 @@ Run with Vertex AI:
 MOCK_MODE=false
 PROOFPILOT_MODEL_PROVIDER=vertex
 VERTEX_PROJECT_ID=your-gcp-project
-VERTEX_LOCATION=us-central1
+VERTEX_LOCATION=global
 VERTEX_ACCESS_TOKEN="$(gcloud auth print-access-token)" # local only; Cloud Run uses metadata tokens
-VERTEX_MODEL=gemini-2.0-flash
+VERTEX_MODEL=gemini-3.5-flash
 ```
 
 The current provider is visible at `GET /api/models/current` and is included in every workflow result under `model`.
@@ -268,6 +268,7 @@ Set these GitHub repository variables:
 ```text
 GCP_PROJECT_ID=project-a3a314b8-7fdb-487f-98c
 GCP_REGION=us-central1
+VERTEX_LOCATION=global
 GCP_WORKLOAD_IDENTITY_PROVIDER=projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github
 GCP_DEPLOYER_SERVICE_ACCOUNT=proofpilot-deployer@PROJECT_ID.iam.gserviceaccount.com
 ARTIFACT_REPOSITORY=proofpilot
@@ -275,7 +276,7 @@ BACKEND_SERVICE=proofpilot-backend
 FRONTEND_SERVICE=proofpilot-frontend
 BACKEND_RUNTIME_SERVICE_ACCOUNT=proofpilot-backend@PROJECT_ID.iam.gserviceaccount.com
 FRONTEND_RUNTIME_SERVICE_ACCOUNT=proofpilot-frontend@PROJECT_ID.iam.gserviceaccount.com
-VERTEX_MODEL=gemini-2.0-flash
+VERTEX_MODEL=gemini-3.5-flash
 ```
 
 With the `gh` CLI:
@@ -283,6 +284,7 @@ With the `gh` CLI:
 ```bash
 gh variable set GCP_PROJECT_ID --body "$PROJECT_ID"
 gh variable set GCP_REGION --body "$REGION"
+gh variable set VERTEX_LOCATION --body "global"
 gh variable set GCP_WORKLOAD_IDENTITY_PROVIDER --body "projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github"
 gh variable set GCP_DEPLOYER_SERVICE_ACCOUNT --body "proofpilot-deployer@$PROJECT_ID.iam.gserviceaccount.com"
 gh variable set ARTIFACT_REPOSITORY --body "proofpilot"
@@ -290,7 +292,7 @@ gh variable set BACKEND_SERVICE --body "proofpilot-backend"
 gh variable set FRONTEND_SERVICE --body "proofpilot-frontend"
 gh variable set BACKEND_RUNTIME_SERVICE_ACCOUNT --body "proofpilot-backend@$PROJECT_ID.iam.gserviceaccount.com"
 gh variable set FRONTEND_RUNTIME_SERVICE_ACCOUNT --body "proofpilot-frontend@$PROJECT_ID.iam.gserviceaccount.com"
-gh variable set VERTEX_MODEL --body "gemini-2.0-flash"
+gh variable set VERTEX_MODEL --body "gemini-3.5-flash"
 ```
 
 After that, every push to `main` or `codex-model-interface-layer` runs the pipeline and deploys both services.
