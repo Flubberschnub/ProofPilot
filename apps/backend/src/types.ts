@@ -3,11 +3,18 @@ export type Audience = "executive" | "technical" | "sales" | "developer";
 export type DemoRequest = {
   apiName: string;
   docsText: string;
+  docsUrl?: string;
+  docsSourceUrl?: string;
   industry: string;
   audience: Audience;
   goal: string;
   preferredStack?: string;
   liveApiAllowed: boolean;
+};
+
+export type WorkflowRequest = Omit<DemoRequest, "docsText"> & {
+  docsText?: string;
+  docsUrl?: string;
 };
 
 export type SourceChunk = {
@@ -82,6 +89,18 @@ export type GitLabExportResult = {
   message: string;
   projectId?: number;
   localPath?: string;
+  artifact?: GeneratedArtifact;
+};
+
+export type GeneratedArtifact = {
+  mode: "gcs" | "local" | "disabled" | "failed";
+  fileName: string;
+  downloadUrl: string | null;
+  message: string;
+  bucket?: string;
+  objectName?: string;
+  localPath?: string;
+  sizeBytes?: number;
 };
 
 export type ModelRunInfo = {

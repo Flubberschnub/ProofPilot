@@ -1,6 +1,7 @@
 import type { GeneratedFile, GitLabExportResult } from "../types.js";
 import fs from "fs-extra";
 import path from "node:path";
+import { exportGeneratedArtifact } from "./artifacts.js";
 
 type GitLabProject = {
   id: number;
@@ -8,6 +9,7 @@ type GitLabProject = {
 };
 
 export async function exportToGitLab(repoName: string, files: GeneratedFile[]): Promise<GitLabExportResult> {
+  const artifact = await exportGeneratedArtifact(repoName, files);
   const mock = process.env.MOCK_MODE !== "false" || !process.env.GITLAB_TOKEN;
 
   if (mock) {
@@ -18,6 +20,7 @@ export async function exportToGitLab(repoName: string, files: GeneratedFile[]): 
       filesCommitted: files.length,
       url: localPath,
       localPath,
+      artifact,
       message: "Mock GitLab export wrote files locally. Set MOCK_MODE=false and GITLAB_TOKEN to enable real export."
     };
   }
@@ -32,6 +35,7 @@ export async function exportToGitLab(repoName: string, files: GeneratedFile[]): 
       repoName,
       filesCommitted: 0,
       url: null,
+      artifact,
       message: "GITLAB_TOKEN is required for live GitLab export."
     };
   }
@@ -46,6 +50,7 @@ export async function exportToGitLab(repoName: string, files: GeneratedFile[]): 
       projectId: project.id,
       filesCommitted: files.length,
       url: project.web_url,
+      artifact,
       message: "Generated demo package exported to GitLab."
     };
   } catch (err) {
@@ -54,6 +59,7 @@ export async function exportToGitLab(repoName: string, files: GeneratedFile[]): 
       repoName,
       filesCommitted: 0,
       url: null,
+      artifact,
       message: err instanceof Error ? err.message : "GitLab export failed."
     };
   }

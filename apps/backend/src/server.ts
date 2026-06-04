@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import { createAgentContext } from "./agents/runtime.js";
 import { listWorkflowAgents } from "./agents/workflow-agents.js";
 import { describeModelClient } from "./models/index.js";
+import { downloadGeneratedArtifact } from "./services/artifacts.js";
 import { runProofPilotWorkflow } from "./workflow.js";
 
 // Import our custom demo generation agents
@@ -31,17 +32,31 @@ const __dirname = path.dirname(__filename);
 // Schema for ProofPilot workflow run
 const requestSchema = z.object({
   apiName: z.string().min(1),
-  docsText: z.string().min(50),
+  docsText: z.string().optional(),
+  docsUrl: z.string().url().optional(),
   industry: z.string().min(1),
   audience: z.enum(["executive", "technical", "sales", "developer"]),
   goal: z.string().min(10),
   preferredStack: z.string().optional(),
   liveApiAllowed: z.boolean().default(false)
+}).refine((input) => Boolean(input.docsUrl || (input.docsText && input.docsText.trim().length >= 50)), {
+  message: "Provide either a docs URL or at least 50 characters of pasted docs text.",
+  path: ["docsUrl"]
 });
 
 app.get("/health", (_req, res) => {
   const model = describeModelClient();
-  res.json({ ok: true, service: "proofpilot-backend", model, agentRuntime: createAgentContext(model).runtime });
+  res.json({
+    ok: true,
+    service: "proofpilot-backend",
+    model,
+    agentRuntime: createAgentContext(model).runtime,
+    artifactExport: {
+      mode: process.env.PROOFPILOT_EXPORT_BUCKET ? "gcs" : "local",
+      bucketConfigured: Boolean(process.env.PROOFPILOT_EXPORT_BUCKET),
+      bucket: process.env.PROOFPILOT_EXPORT_BUCKET || null
+    }
+  });
 });
 
 app.get("/api/models/current", (_req, res) => {
@@ -144,6 +159,17 @@ for (const p of pathsToTry) {
 }
 
 app.use(express.static(frontendBuildPath));
+
+app.get("/api/exports/:objectId/download", async (req, res, next) => {
+  try {
+    const artifact = await downloadGeneratedArtifact(req.params.objectId);
+    res.setHeader("Content-Type", artifact.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${artifact.fileName}"`);
+    res.send(artifact.data);
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const message = err instanceof Error ? err.message : "Unknown error";
