@@ -94,7 +94,7 @@ export default function App() {
   const [demoFiles, setDemoFiles] = useState<Array<{ path: string; content: string }>>([]);
   const [demoRepoUrl, setDemoRepoUrl] = useState("");
   const [showDemoModal, setShowDemoModal] = useState(false);
-  const [demoActiveTab, setDemoActiveTab] = useState<"plan" | "code" | "capabilities">("plan");
+  const [demoActiveTab, setDemoActiveTab] = useState<"plan" | "code" | "capabilities" | "readme">("plan");
   const [selectedDemoFileIndex, setSelectedDemoFileIndex] = useState(0);
 
   const terminalEndRef = useRef<HTMLDivElement>(null);
@@ -173,6 +173,7 @@ export default function App() {
         } else if (stage === "generator_complete") {
           if (data && data.files) {
             setDemoFiles(data.files);
+            setDemoActiveTab("readme"); // Switch automatically to the Setup Guide tab
           }
         } else if (stage === "github_complete") {
           setDemoRepoUrl(data.repoUrl);
@@ -386,6 +387,13 @@ export default function App() {
                 >
                   API Docs Profile
                 </button>
+                <button
+                  onClick={() => setDemoActiveTab("readme")}
+                  className={`tab-btn ${demoActiveTab === "readme" ? "active" : ""}`}
+                  disabled={demoFiles.length === 0}
+                >
+                  Setup Guide
+                </button>
               </div>
 
               <div className="tab-content" style={{ minHeight: "260px" }}>
@@ -473,6 +481,21 @@ export default function App() {
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* TAB: README */}
+                {demoActiveTab === "readme" && (
+                  <div style={{ textAlign: "left" }}>
+                    <ReactMarkdown
+                      components={{
+                        a: ({ node, ...props }) => (
+                          <a {...props} target="_blank" rel="noopener noreferrer" />
+                        )
+                      }}
+                    >
+                      {demoFiles.find(f => f.path.toLowerCase() === 'readme.md')?.content || "No setup guide generated."}
+                    </ReactMarkdown>
                   </div>
                 )}
               </div>
