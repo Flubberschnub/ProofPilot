@@ -6,7 +6,8 @@ import {
   exportAgent,
   intakeAgent,
   packageGeneratorAgent,
-  sourceCapabilityAgent
+  sourceCapabilityAgent,
+  verificationAgent
 } from "./agents/workflow-agents.js";
 import { createAgentContext, runAgent } from "./agents/runtime.js";
 import { describeModelClient } from "./models/index.js";
@@ -28,6 +29,11 @@ export async function runProofPilotWorkflow(input: WorkflowRequest) {
     plan,
     claimReport
   }, agentContext);
+  const verification = await runAgent(verificationAgent, {
+    input: intake.input,
+    plan,
+    files: generatedPackage.files
+  }, agentContext);
   const gitlab = await runAgent(exportAgent, {
     repoName: `${slugify(plan.title)}-demo`,
     files: generatedPackage.files
@@ -44,6 +50,7 @@ export async function runProofPilotWorkflow(input: WorkflowRequest) {
     capabilities: sourceCapability.capabilities,
     plan,
     claimReport,
+    verification,
     files: generatedPackage.files,
     packageCheck: generatedPackage.packageCheck,
     gitlab
