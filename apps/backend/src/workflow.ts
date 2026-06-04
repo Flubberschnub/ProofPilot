@@ -1,27 +1,49 @@
 import { nanoid } from "nanoid";
 import type { DemoRequest } from "./types.js";
-import { extractCapabilities, generateDemoPlan, validateClaims } from "./services/agent.js";
-import { indexDocs } from "./services/elastic.js";
-import { generateDemoFiles } from "./services/generator.js";
-import { exportToGitLab } from "./services/gitlab.js";
+import {
+  claimCheckerAgent,
+  demoPlannerAgent,
+  exportAgent,
+  intakeAgent,
+  packageGeneratorAgent,
+  sourceCapabilityAgent
+} from "./agents/workflow-agents.js";
+import { createAgentContext, runAgent } from "./agents/runtime.js";
+import { describeModelClient } from "./models/index.js";
 
 export async function runProofPilotWorkflow(input: DemoRequest) {
+  const model = describeModelClient();
+  const agentContext = createAgentContext(model);
   const sourceId = `src_${nanoid(8)}`;
-  const chunks = await indexDocs(sourceId, input.apiName, input.docsText);
 
-  const capabilities = await extractCapabilities(input, chunks);
-  const plan = await generateDemoPlan(input, capabilities);
-  const claimReport = await validateClaims(sourceId, plan.claims);
-  const files = await generateDemoFiles(input, plan, claimReport);
-  const gitlab = await exportToGitLab(`${slugify(plan.title)}-demo`, files);
+  const intake = await runAgent(intakeAgent, input, agentContext);
+  const sourceCapability = await runAgent(sourceCapabilityAgent, { sourceId, input: intake.input }, agentContext);
+  const plan = await runAgent(demoPlannerAgent, {
+    input: intake.input,
+    capabilities: sourceCapability.capabilities
+  }, agentContext);
+  const claimReport = await runAgent(claimCheckerAgent, { sourceId, claims: plan.claims }, agentContext);
+  const generatedPackage = await runAgent(packageGeneratorAgent, {
+    input: intake.input,
+    plan,
+    claimReport
+  }, agentContext);
+  const gitlab = await runAgent(exportAgent, {
+    repoName: `${slugify(plan.title)}-demo`,
+    files: generatedPackage.files
+  }, agentContext);
 
   return {
+    model,
+    agentRuntime: agentContext.runtime,
+    agents: agentContext.trace,
     sourceId,
-    chunksIndexed: chunks.length,
-    capabilities,
+    chunksIndexed: sourceCapability.chunks.length,
+    capabilities: sourceCapability.capabilities,
     plan,
     claimReport,
-    files,
+    files: generatedPackage.files,
+    packageCheck: generatedPackage.packageCheck,
     gitlab
   };
 }

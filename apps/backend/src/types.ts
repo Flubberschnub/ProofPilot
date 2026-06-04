@@ -64,3 +64,51 @@ export type GeneratedFile = {
   path: string;
   content: string;
 };
+
+export type GeneratedPackageCheck = {
+  status: "passed" | "warning" | "failed";
+  checks: Array<{
+    name: string;
+    status: "passed" | "warning" | "failed";
+    message: string;
+  }>;
+};
+
+export type GitLabExportResult = {
+  mode: "mock" | "live" | "not_configured" | "failed";
+  repoName: string;
+  filesCommitted: number;
+  url: string | null;
+  message: string;
+  projectId?: number;
+  localPath?: string;
+};
+
+export type ModelRunInfo = {
+  provider: "mock" | "gemini" | "vertex";
+  model: string;
+  configured: boolean;
+  mode: "mock" | "live";
+};
+
+export type AgentRuntimeInfo = {
+  mode: "bespoke" | "adk-compatible";
+  description: string;
+};
+
+export type AgentRunStatus = "passed" | "failed";
+
+export type AgentRun = {
+  id: string;
+  name: string;
+  description: string;
+  runtime: AgentRuntimeInfo;
+  tools: string[];
+  status: AgentRunStatus;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  inputSummary: string;
+  outputSummary: string;
+  error?: string;
+};
