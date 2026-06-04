@@ -160,7 +160,7 @@ The most portable GCP path is two Cloud Run services:
 
 1. Deploy `proofpilot-backend`.
 2. Capture its service URL.
-3. Deploy `proofpilot-frontend` with `API_BASE_URL` set to the backend URL.
+3. Deploy `proofpilot-frontend` with `BACKEND_URL` set to the backend URL.
 
 ```bash
 BACKEND_URL="$(gcloud run services describe proofpilot-backend --region us-central1 --format='value(status.url)')"
@@ -169,8 +169,10 @@ gcloud run deploy proofpilot-frontend \
   --source apps/frontend \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars "API_BASE_URL=$BACKEND_URL"
+  --set-env-vars "BACKEND_URL=$BACKEND_URL"
 ```
+
+When deployed this way, browser requests go to the frontend service at `/api/*`. The frontend server proxies those requests to the backend. On Cloud Run it obtains an identity token from the metadata server, so the backend can stay private and grant `roles/run.invoker` only to the frontend service account.
 
 For a purely static option, build the frontend with `VITE_API_BASE_URL` set and deploy `apps/frontend/dist` to Firebase Hosting:
 
@@ -180,6 +182,118 @@ VITE_API_BASE_URL="$BACKEND_URL" npm run build
 firebase init hosting
 firebase deploy --only hosting
 ```
+
+## CI/CD with GitHub Actions
+
+The workflow at `.github/workflows/deploy-cloud-run.yml` tests, builds Docker images, pushes them to Artifact Registry, deploys a private backend Cloud Run service, grants backend invoke access to the frontend service account, and deploys a public frontend Cloud Run service.
+
+One-time GCP setup:
+
+```bash
+export PROJECT_ID="project-a3a314b8-7fdb-487f-98c"
+export REGION="us-central1"
+export GITHUB_REPO="Flubberschnub/ProofPilot"
+export PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
+
+gcloud config set project "$PROJECT_ID"
+
+gcloud services enable \
+  aiplatform.googleapis.com \
+  artifactregistry.googleapis.com \
+  iam.googleapis.com \
+  iamcredentials.googleapis.com \
+  run.googleapis.com \
+  sts.googleapis.com
+
+gcloud artifacts repositories create proofpilot \
+  --repository-format=docker \
+  --location="$REGION" \
+  --description="ProofPilot container images"
+
+gcloud iam service-accounts create proofpilot-deployer
+gcloud iam service-accounts create proofpilot-backend
+gcloud iam service-accounts create proofpilot-frontend
+```
+
+Grant runtime permissions:
+
+```bash
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:proofpilot-backend@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user"
+```
+
+Grant deployer permissions:
+
+```bash
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:proofpilot-deployer@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/run.admin"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:proofpilot-deployer@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/artifactregistry.writer"
+
+gcloud iam service-accounts add-iam-policy-binding "proofpilot-backend@$PROJECT_ID.iam.gserviceaccount.com" \
+  --member="serviceAccount:proofpilot-deployer@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+
+gcloud iam service-accounts add-iam-policy-binding "proofpilot-frontend@$PROJECT_ID.iam.gserviceaccount.com" \
+  --member="serviceAccount:proofpilot-deployer@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+```
+
+Configure GitHub Workload Identity Federation:
+
+```bash
+gcloud iam workload-identity-pools create github \
+  --location="global" \
+  --display-name="GitHub Actions"
+
+gcloud iam workload-identity-pools providers create-oidc github \
+  --location="global" \
+  --workload-identity-pool="github" \
+  --display-name="GitHub Actions" \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository,attribute.ref=assertion.ref" \
+  --attribute-condition="attribute.repository=='$GITHUB_REPO'"
+
+gcloud iam service-accounts add-iam-policy-binding "proofpilot-deployer@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/$GITHUB_REPO"
+```
+
+Set these GitHub repository variables:
+
+```text
+GCP_PROJECT_ID=project-a3a314b8-7fdb-487f-98c
+GCP_REGION=us-central1
+GCP_WORKLOAD_IDENTITY_PROVIDER=projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github
+GCP_DEPLOYER_SERVICE_ACCOUNT=proofpilot-deployer@PROJECT_ID.iam.gserviceaccount.com
+ARTIFACT_REPOSITORY=proofpilot
+BACKEND_SERVICE=proofpilot-backend
+FRONTEND_SERVICE=proofpilot-frontend
+BACKEND_RUNTIME_SERVICE_ACCOUNT=proofpilot-backend@PROJECT_ID.iam.gserviceaccount.com
+FRONTEND_RUNTIME_SERVICE_ACCOUNT=proofpilot-frontend@PROJECT_ID.iam.gserviceaccount.com
+VERTEX_MODEL=gemini-2.0-flash
+```
+
+With the `gh` CLI:
+
+```bash
+gh variable set GCP_PROJECT_ID --body "$PROJECT_ID"
+gh variable set GCP_REGION --body "$REGION"
+gh variable set GCP_WORKLOAD_IDENTITY_PROVIDER --body "projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github"
+gh variable set GCP_DEPLOYER_SERVICE_ACCOUNT --body "proofpilot-deployer@$PROJECT_ID.iam.gserviceaccount.com"
+gh variable set ARTIFACT_REPOSITORY --body "proofpilot"
+gh variable set BACKEND_SERVICE --body "proofpilot-backend"
+gh variable set FRONTEND_SERVICE --body "proofpilot-frontend"
+gh variable set BACKEND_RUNTIME_SERVICE_ACCOUNT --body "proofpilot-backend@$PROJECT_ID.iam.gserviceaccount.com"
+gh variable set FRONTEND_RUNTIME_SERVICE_ACCOUNT --body "proofpilot-frontend@$PROJECT_ID.iam.gserviceaccount.com"
+gh variable set VERTEX_MODEL --body "gemini-2.0-flash"
+```
+
+After that, every push to `main` or `codex-model-interface-layer` runs the pipeline and deploys both services.
 
 ## MVP flow
 
