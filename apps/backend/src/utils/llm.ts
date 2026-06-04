@@ -101,12 +101,30 @@ export async function generateJSON<T>(modelName: string, prompt: string, systemI
   }
 
   const result = await generateContentWithRetry(modelName, contents);
-  const text = result.response.text();
+  let text = result.response.text();
   
   try {
     return JSON.parse(text) as T;
   } catch (err: any) {
-    console.error('[LLM Wrapper] Failed to parse response as JSON. Raw response:', text);
-    throw new Error('Model did not return valid JSON: ' + err.message);
+    // Attempt to repair JSON if it contains raw control characters in string literals
+    try {
+      // Find all double-quoted string literals in the JSON and escape raw newlines/carriage returns inside them
+      const cleaned = text.replace(/"([^"\\]|\\.)*"/g, (match: string) => {
+        return match
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t');
+      });
+      return JSON.parse(cleaned) as T;
+    } catch (secondError) {
+      // If regex replacement fails, attempt to strip out control characters or throw original
+      try {
+        const stripped = text.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+        return JSON.parse(stripped) as T;
+      } catch (thirdError) {
+        console.error('[LLM Wrapper] Failed to parse response as JSON. Raw response:', text);
+        throw new Error('Model did not return valid JSON: ' + err.message);
+      }
+    }
   }
 }
