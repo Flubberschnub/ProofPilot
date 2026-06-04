@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - codex-model-interface-layer
   workflow_dispatch:
 
 env:
@@ -15,7 +14,7 @@ env:
   FRONTEND_SERVICE: ${{ vars.FRONTEND_SERVICE || 'proofpilot-frontend' }}
   BACKEND_RUNTIME_SERVICE_ACCOUNT: ${{ vars.BACKEND_RUNTIME_SERVICE_ACCOUNT }}
   FRONTEND_RUNTIME_SERVICE_ACCOUNT: ${{ vars.FRONTEND_RUNTIME_SERVICE_ACCOUNT }}
-  VERTEX_MODEL: ${{ vars.VERTEX_MODEL || 'gemini-2.0-flash' }}
+  VERTEX_MODEL: ${{ vars.VERTEX_MODEL || 'gemini-3.5-flash' }}
 
 jobs:
   test:
