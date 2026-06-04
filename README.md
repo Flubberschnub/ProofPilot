@@ -1,6 +1,6 @@
 # ProofPilot — Agentic API Demo Generator
 
-ProofPilot turns API documentation plus a target business scenario into a source-grounded, reviewable API demo package.
+ProofPilot turns API documentation or a public docs URL plus a target business scenario into a source-grounded, reviewable API demo package.
 
 This scaffold includes:
 
@@ -34,7 +34,7 @@ npm install
 VITE_API_BASE_URL=http://localhost:8080 npm run dev
 ```
 
-Open the frontend URL printed by Vite. The backend defaults to mock mode and does not require real Elastic, Gemini, or GitLab credentials.
+Open the frontend URL printed by Vite. Enter an API name, a public docs URL or pasted docs text, and a custom customer scenario. The backend defaults to mock mode and does not require real Elastic, Gemini, or GitLab credentials.
 
 For production frontend hosting, set `API_BASE_URL` to the deployed backend URL. The frontend writes that value to `/config.js` at container startup, so the same built image can move between projects or backend services.
 
@@ -78,7 +78,7 @@ The default runtime is:
 PROOFPILOT_AGENT_RUNTIME=bespoke
 ```
 
-This uses ProofPilot's TypeScript agent runner plus the configured model client (`mock`, `gemini`, or `vertex`). You can also set:
+This uses ProofPilot's TypeScript agent runner plus the configured model client (`mock`, `gemini`, or `vertex`). The intake agent can fetch HTML, Markdown, JSON, YAML, or OpenAPI docs from a URL and extract text before the rest of the pipeline runs. You can also set:
 
 ```bash
 PROOFPILOT_AGENT_RUNTIME=adk
@@ -314,8 +314,8 @@ After that, every push to `main` or `codex-model-interface-layer` runs the pipel
 
 ## MVP flow
 
-1. User enters API docs and target scenario.
-2. Backend indexes/extracts capabilities.
+1. User enters API name, docs URL or pasted docs, and target scenario.
+2. Backend fetches docs when needed, then indexes/extracts capabilities.
 3. Agent generates a tailored demo plan.
 4. Claim checker validates claims against retrieved evidence.
 5. Generator creates a React + Node demo package.

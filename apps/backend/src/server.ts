@@ -16,17 +16,31 @@ app.use(express.json({ limit: "4mb" }));
 
 const requestSchema = z.object({
   apiName: z.string().min(1),
-  docsText: z.string().min(50),
+  docsText: z.string().optional(),
+  docsUrl: z.string().url().optional(),
   industry: z.string().min(1),
   audience: z.enum(["executive", "technical", "sales", "developer"]),
   goal: z.string().min(10),
   preferredStack: z.string().optional(),
   liveApiAllowed: z.boolean().default(false)
+}).refine((input) => Boolean(input.docsUrl || (input.docsText && input.docsText.trim().length >= 50)), {
+  message: "Provide either a docs URL or at least 50 characters of pasted docs text.",
+  path: ["docsUrl"]
 });
 
 app.get("/health", (_req, res) => {
   const model = describeModelClient();
-  res.json({ ok: true, service: "proofpilot-backend", model, agentRuntime: createAgentContext(model).runtime });
+  res.json({
+    ok: true,
+    service: "proofpilot-backend",
+    model,
+    agentRuntime: createAgentContext(model).runtime,
+    artifactExport: {
+      mode: process.env.PROOFPILOT_EXPORT_BUCKET ? "gcs" : "local",
+      bucketConfigured: Boolean(process.env.PROOFPILOT_EXPORT_BUCKET),
+      bucket: process.env.PROOFPILOT_EXPORT_BUCKET || null
+    }
+  });
 });
 
 app.get("/api/models/current", (_req, res) => {

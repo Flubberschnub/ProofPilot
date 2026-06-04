@@ -3,11 +3,18 @@ export type Audience = "executive" | "technical" | "sales" | "developer";
 export type DemoRequest = {
   apiName: string;
   docsText: string;
+  docsUrl?: string;
+  docsSourceUrl?: string;
   industry: string;
   audience: Audience;
   goal: string;
   preferredStack?: string;
   liveApiAllowed: boolean;
+};
+
+export type WorkflowRequest = Omit<DemoRequest, "docsText"> & {
+  docsText?: string;
+  docsUrl?: string;
 };
 
 export type SourceChunk = {

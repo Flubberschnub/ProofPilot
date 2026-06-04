@@ -6,8 +6,10 @@ import type {
   GeneratedFile,
   GeneratedPackageCheck,
   GitLabExportResult,
-  SourceChunk
+  SourceChunk,
+  WorkflowRequest
 } from "../types.js";
+import { resolveWorkflowDocs } from "../services/docs.js";
 import { extractCapabilities, generateDemoPlan, validateClaims } from "../services/agent.js";
 import { indexDocs } from "../services/elastic.js";
 import { exportToGitLab } from "../services/gitlab.js";
@@ -35,25 +37,26 @@ export type ExportInput = {
   files: GeneratedFile[];
 };
 
-export const intakeAgent: ProofPilotAgent<DemoRequest, IntakeOutput> = {
+export const intakeAgent: ProofPilotAgent<WorkflowRequest, IntakeOutput> = {
   id: "mvp-01-intake",
   name: "Intake Agent",
-  description: "Accepts API documentation and the buyer scenario, then normalizes the workflow request.",
-  tools: ["request-schema", "scenario-normalizer"],
+  description: "Accepts API documentation or a docs URL and the buyer scenario, then normalizes the workflow request.",
+  tools: ["request-schema", "docs.fetchUrl", "docs.extractText", "scenario-normalizer"],
   async run(input) {
+    const resolved = await resolveWorkflowDocs(input);
     return {
       input: {
-        ...input,
-        apiName: input.apiName.trim(),
-        docsText: input.docsText.trim(),
-        industry: input.industry.trim(),
-        goal: input.goal.trim(),
-        preferredStack: input.preferredStack?.trim()
+        ...resolved,
+        apiName: resolved.apiName.trim(),
+        docsText: resolved.docsText.trim(),
+        industry: resolved.industry.trim(),
+        goal: resolved.goal.trim(),
+        preferredStack: resolved.preferredStack?.trim()
       }
     };
   },
-  summarizeInput: (input) => `${input.apiName} for ${input.industry}; docs=${input.docsText.length} chars`,
-  summarizeOutput: (output) => `${output.input.apiName}; goal=${output.input.goal.slice(0, 120)}`
+  summarizeInput: (input) => `${input.apiName} for ${input.industry}; docs=${input.docsText?.length ?? 0} chars; url=${input.docsUrl ?? "none"}`,
+  summarizeOutput: (output) => `${output.input.apiName}; docs=${output.input.docsText.length} chars; source=${output.input.docsSourceUrl ?? "pasted text"}`
 };
 
 export const sourceCapabilityAgent: ProofPilotAgent<{ sourceId: string; input: DemoRequest }, SourceCapabilityOutput> = {
