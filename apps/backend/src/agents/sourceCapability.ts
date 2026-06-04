@@ -5,16 +5,25 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 let esClient: Client | null = null;
-if (process.env.ELASTIC_CLOUD_ID && process.env.ELASTIC_API_KEY) {
+const apiKey = process.env.ELASTIC_API_KEY;
+const cloudId = process.env.ELASTIC_CLOUD_ID;
+const nodeUrl = process.env.ELASTIC_NODE_URL;
+
+if (apiKey && (cloudId || nodeUrl)) {
   try {
-    esClient = new Client({
-      cloud: { id: process.env.ELASTIC_CLOUD_ID },
-      auth: { apiKey: process.env.ELASTIC_API_KEY }
-    });
+    const config: any = { auth: { apiKey } };
+    if (cloudId) {
+      config.cloud = { id: cloudId };
+    } else {
+      config.node = nodeUrl;
+    }
+    esClient = new Client(config);
     console.log('[SourceCapabilityAgent] Elasticsearch client initialized.');
   } catch (err) {
     console.error('[SourceCapabilityAgent] Failed to initialize Elasticsearch client:', err);
   }
+} else {
+  console.warn('[SourceCapabilityAgent] ELASTIC_API_KEY and (ELASTIC_CLOUD_ID or ELASTIC_NODE_URL) missing. Graceful mock fallback will be used.');
 }
 
 /**
