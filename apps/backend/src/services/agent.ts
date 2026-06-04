@@ -41,7 +41,7 @@ export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapa
   const fallback = () => heuristicDemoPlan(input, capabilities);
   const response = await getModelClient().generateJson<DemoPlan>({
     schemaName: "DemoPlan",
-    system: agentSystemPrompt(),
+    system: "You are ProofPilot's source-grounded API demo planning agent. Do not invent API capabilities to satisfy the user's business scenario. If the user requests a workflow (e.g., 'document uploading' or 'claims intake') that is not supported by the retrieved Elastic documentation for the target API, you must handle that business logic entirely within the generated React/Node app as mock application logic. The target API must ONLY be used for its documented endpoints. Prefer precise, testable claims over broad marketing language.",
     prompt: [
       `Create a concise source-grounded demo plan for ${input.apiName}.`,
       `Industry: ${input.industry}`,
@@ -79,7 +79,7 @@ export async function validateClaims(sourceId: string, claims: DemoClaim[]): Pro
     const fallback = () => heuristicClaimCheck(claim, evidence);
     const result = await getModelClient().generateJson<{ status: DemoClaim["status"]; rewrite?: string }>({
       schemaName: "ClaimValidation",
-      system: agentSystemPrompt(),
+      system: "You are ProofPilot's claim audit checking agent. You must aggressively audit the 'Source-grounded claims' section. You must strip out any claim that the target API performs an action not explicitly found in the Elastic database. Ensure the final output clearly delineates between what the Custom Demo App does (e.g., 'The app allows users to upload a claim') and what the Target API does (e.g., 'Open-Meteo provides historical weather data for the claim location'). Prefer precise, testable claims over broad marketing language.",
       prompt: [
         "Validate the claim against the evidence.",
         "Use status supported only when the evidence directly supports the claim.",
