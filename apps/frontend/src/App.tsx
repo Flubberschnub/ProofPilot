@@ -60,42 +60,35 @@ type LogEntry = {
   stage: string;
 };
 
-const sampleDocs = `# Acme Document Extraction API
+const sampleDocs = `# Open-Meteo Weather Forecast API
 
-The Acme Document Extraction API lets applications upload business documents and extract structured fields from them.
+Open-Meteo offers free weather forecast APIs for non-commercial use. No API key is required.
 
-## Authentication
+## Endpoint: GET /v1/forecast
 
-All requests use Bearer token authentication.
+Retrieve weather forecasts by providing latitude and longitude coordinates.
 
-## POST /documents/extract
+### Request Parameters:
+- latitude (float): Latitude coordinate (e.g. 37.3382 for San Jose)
+- longitude (float): Longitude coordinate (e.g. -121.8863 for San Jose)
+- hourly (string): List of hourly weather variables (e.g., temperature_2m, relative_humidity_2m, wind_speed_10m, precipitation, weather_code)
+- daily (string): List of daily weather variables (e.g., temperature_2m_max, temperature_2m_min, precipitation_sum)
+- current (string): Current weather variables (e.g., temperature_2m, wind_speed_10m)
 
-Uploads a document for extraction. Supported file types include PDF, PNG, and JPG. Request uses multipart/form-data with a file field and optional document_type.
+### Example Request:
+GET https://api.open-meteo.com/v1/forecast?latitude=37.3382&longitude=-121.8863&current=temperature_2m,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m
 
-## GET /documents/{document_id}
-
-Returns extraction status and extracted fields. Fields include a name, value, and confidence score.
-
-## POST /documents/{document_id}/approve
-
-Approves a reviewed extraction result.
-
-## POST /exports
-
-Exports approved structured data to a downstream system as JSON. The API does not directly integrate with Guidewire, Salesforce, or Epic; customers usually connect exports to their own integration layer.
-
-## Marketing note
-
-Customers often use Acme to reduce manual review effort, but exact time savings depend on document quality, workflow design, and human review policies.`;
+### Response format (JSON):
+Returns forecast timestamps, hourly temperature values, wind speeds, and precipitation variables.`;
 
 export default function App() {
   // State for Brief Form
-  const [apiName, setApiName] = useState("Acme Document Extraction API");
-  const [docsUrl, setDocsUrl] = useState("");
+  const [apiName, setApiName] = useState("Open Meteo API");
+  const [docsUrl, setDocsUrl] = useState("https://open-meteo.com/en/docs");
   const [docsText, setDocsText] = useState(sampleDocs);
-  const [goal, setGoal] = useState("Show how a regional insurance company could reduce manual claim intake work by uploading claim PDFs, extracting fields, reviewing uncertain values, and exporting approved data.");
-  const [industry, setIndustry] = useState("Insurance");
-  const [audience, setAudience] = useState("executive");
+  const [goal, setGoal] = useState("We are a car insurance company in San Jose. We want to use the Open Meteo api (https://open-meteo.com/en/docs) to dynamically change the insurance premiums we charge.");
+  const [industry, setIndustry] = useState("Car Insurance");
+  const [audience, setAudience] = useState("technical");
 
   // State for execution status
   const [status, setStatus] = useState<"idle" | "generating" | "completed" | "error">("idle");
