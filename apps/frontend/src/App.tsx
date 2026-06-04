@@ -16,6 +16,8 @@ type WorkflowResult = {
     error?: string;
   }>;
   chunksIndexed: number;
+  docsSourceUrl?: string;
+  docsCharacters?: number;
   capabilities: Array<{ name: string; description: string; endpoints: string[] }>;
   plan: {
     title: string;
@@ -33,7 +35,23 @@ type WorkflowResult = {
     status: string;
     checks: Array<{ name: string; status: string; message: string }>;
   };
-  gitlab: { mode: string; url: string | null; message: string; filesCommitted: number; localPath?: string };
+  gitlab: {
+    mode: string;
+    url: string | null;
+    message: string;
+    filesCommitted: number;
+    localPath?: string;
+    artifact?: {
+      mode: string;
+      fileName: string;
+      downloadUrl: string | null;
+      message: string;
+      sizeBytes?: number;
+      localPath?: string;
+      bucket?: string;
+      objectName?: string;
+    };
+  };
 };
 
 const sampleDocs = `# Acme Document Extraction API
@@ -65,6 +83,8 @@ Exports approved structured data to a downstream system as JSON. The API does no
 Customers often use Acme to reduce manual review effort, but exact time savings depend on document quality, workflow design, and human review policies.`;
 
 export default function App() {
+  const [apiName, setApiName] = useState("Acme Document Extraction API");
+  const [docsUrl, setDocsUrl] = useState("");
   const [docsText, setDocsText] = useState(sampleDocs);
   const [goal, setGoal] = useState("Show how a regional insurance company could reduce manual claim intake work by uploading claim PDFs, extracting fields, reviewing uncertain values, and exporting approved data.");
   const [industry, setIndustry] = useState("Insurance");
@@ -81,8 +101,9 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          apiName: "Acme Document Extraction API",
-          docsText,
+          apiName,
+          docsUrl: docsUrl.trim() || undefined,
+          docsText: docsText.trim() || undefined,
           industry,
           audience,
           goal,
@@ -100,18 +121,27 @@ export default function App() {
   }
 
   const filePreview = useMemo(() => result?.files?.slice(0, 6) ?? [], [result]);
+  const artifact = result?.gitlab.artifact;
+  const artifactDownloadUrl = artifact?.downloadUrl?.startsWith("/api/")
+    ? apiUrl(artifact.downloadUrl)
+    : artifact?.downloadUrl?.startsWith("http")
+      ? artifact.downloadUrl
+      : undefined;
 
   return (
     <main className="page">
-      <section className="hero">
+          <section className="hero">
         <p className="eyebrow">Google Rapid Agent Hackathon scaffold</p>
         <h1>ProofPilot</h1>
-        <p>Generate source-grounded API demos from product docs and a customer scenario.</p>
+        <p>Generate source-grounded API demos from product docs, docs URLs, and a customer scenario.</p>
       </section>
 
       <section className="grid">
         <div className="card">
           <h2>1. Demo brief</h2>
+          <label>API name</label>
+          <input value={apiName} onChange={(e) => setApiName(e.target.value)} />
+
           <label>Industry</label>
           <input value={industry} onChange={(e) => setIndustry(e.target.value)} />
 
@@ -126,8 +156,15 @@ export default function App() {
           <label>Goal</label>
           <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={5} />
 
-          <label>API docs</label>
-          <textarea value={docsText} onChange={(e) => setDocsText(e.target.value)} rows={13} />
+          <label>Docs URL</label>
+          <input
+            placeholder="https://example.com/docs or OpenAPI URL"
+            value={docsUrl}
+            onChange={(e) => setDocsUrl(e.target.value)}
+          />
+
+          <label>API docs fallback</label>
+          <textarea value={docsText} onChange={(e) => setDocsText(e.target.value)} rows={11} />
 
           <button onClick={runWorkflow} disabled={loading}>{loading ? "Generating..." : "Generate grounded demo"}</button>
           {error && <p className="error">{error}</p>}
@@ -138,6 +175,7 @@ export default function App() {
             <h2>2. Generated plan</h2>
             {!result ? <p className="muted">Run the workflow to generate a plan.</p> : <>
               <p className="muted">Runtime: {result.agentRuntime.mode}. Model: {result.model.provider} / {result.model.model}</p>
+              <p className="muted">Docs: {result.docsSourceUrl ?? "pasted text"}{result.docsCharacters ? ` (${result.docsCharacters.toLocaleString()} chars)` : ""}</p>
               <h3>{result.plan.title}</h3>
               <p>{result.plan.story}</p>
               <div className="chips">{result.plan.screens.map((s) => <span key={s}>{s}</span>)}</div>
@@ -172,6 +210,10 @@ export default function App() {
             <h2>4. Generated package</h2>
             {!result ? <p className="muted">Generated files and GitLab export appear here.</p> : <>
               <p><strong>{result.files.length}</strong> files generated. Package check: <strong>{result.packageCheck.status}</strong>. GitLab mode: <strong>{result.gitlab.mode}</strong></p>
+              {artifactDownloadUrl && <p><a className="download-link" href={artifactDownloadUrl} download={artifact?.fileName}>Download demo zip</a></p>}
+              {artifact && <p className="muted">Artifact: {artifact.mode} / {artifact.fileName}{artifact.sizeBytes ? ` (${Math.round(artifact.sizeBytes / 1024)} KB)` : ""}</p>}
+              {artifact?.message && <p className="muted">{artifact.message}</p>}
+              {artifact?.objectName && <p className="muted">Object: <code>{artifact.objectName}</code></p>}
               {result.gitlab.url && <a href={result.gitlab.url}>{result.gitlab.url}</a>}
               {result.gitlab.localPath && <p className="muted">Local export: <code>{result.gitlab.localPath}</code></p>}
               <ul>{filePreview.map((f) => <li key={f.path}><code>{f.path}</code></li>)}</ul>

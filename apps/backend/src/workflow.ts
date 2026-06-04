@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import type { DemoRequest } from "./types.js";
+import type { WorkflowRequest } from "./types.js";
 import {
   claimCheckerAgent,
   demoPlannerAgent,
@@ -11,7 +11,7 @@ import {
 import { createAgentContext, runAgent } from "./agents/runtime.js";
 import { describeModelClient } from "./models/index.js";
 
-export async function runProofPilotWorkflow(input: DemoRequest) {
+export async function runProofPilotWorkflow(input: WorkflowRequest) {
   const model = describeModelClient();
   const agentContext = createAgentContext(model);
   const sourceId = `src_${nanoid(8)}`;
@@ -38,6 +38,8 @@ export async function runProofPilotWorkflow(input: DemoRequest) {
     agentRuntime: agentContext.runtime,
     agents: agentContext.trace,
     sourceId,
+    docsSourceUrl: intake.input.docsSourceUrl,
+    docsCharacters: intake.input.docsText.length,
     chunksIndexed: sourceCapability.chunks.length,
     capabilities: sourceCapability.capabilities,
     plan,
