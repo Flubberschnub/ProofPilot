@@ -149,7 +149,12 @@ export default function App() {
     }, 3000);
 
     try {
-      const response = await fetch(apiUrl("/api/workflow/run"), {
+      let targetUrl = apiUrl("/api/workflow/run");
+      if (!targetUrl.startsWith("http") && window.location.hostname === "localhost") {
+        targetUrl = `http://localhost:8080${targetUrl}`;
+      }
+
+      const response = await fetch(targetUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -203,11 +208,15 @@ export default function App() {
 
   const filePreview = useMemo(() => result?.files?.slice(0, 6) ?? [], [result]);
   const artifact = result?.gitlab?.artifact;
-  const artifactDownloadUrl = artifact?.downloadUrl?.startsWith("/api/")
+  let artifactDownloadUrl = artifact?.downloadUrl?.startsWith("/api/")
     ? apiUrl(artifact.downloadUrl)
     : artifact?.downloadUrl?.startsWith("http")
       ? artifact.downloadUrl
       : undefined;
+
+  if (artifactDownloadUrl && !artifactDownloadUrl.startsWith("http") && window.location.hostname === "localhost") {
+    artifactDownloadUrl = `http://localhost:8080${artifactDownloadUrl}`;
+  }
 
   return (
     <main className="page">
