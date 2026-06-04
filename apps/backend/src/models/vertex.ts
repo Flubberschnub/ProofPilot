@@ -33,7 +33,7 @@ export class VertexModelClient implements ModelClient {
     }
     const accessToken = await this.resolveAccessToken();
 
-    const url = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this.model}:generateContent`;
+    const url = this.generateContentUrl();
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -83,6 +83,14 @@ export class VertexModelClient implements ModelClient {
     const token = await response.json() as { access_token?: string };
     if (!token.access_token) throw new Error("Cloud Run metadata token response did not include access_token.");
     return token.access_token;
+  }
+
+  private generateContentUrl() {
+    const host = this.location === "global"
+      ? "aiplatform.googleapis.com"
+      : `${this.location}-aiplatform.googleapis.com`;
+
+    return `https://${host}/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this.model}:generateContent`;
   }
 }
 
