@@ -15,6 +15,8 @@ import { indexDocs } from "../services/elastic.js";
 import { exportToGitLab } from "../services/gitlab.js";
 import { generateDemoFiles } from "../services/generator.js";
 import { validateGeneratedPackage } from "./package-check.js";
+import { verificationAgent } from "./verification.js";
+export { verificationAgent };
 import type { ProofPilotAgent } from "./runtime.js";
 
 export type IntakeOutput = {
@@ -126,6 +128,7 @@ export function listWorkflowAgents() {
     demoPlannerAgent,
     claimCheckerAgent,
     packageGeneratorAgent,
+    verificationAgent,
     exportAgent
   ].map((agent) => ({
     id: agent.id,

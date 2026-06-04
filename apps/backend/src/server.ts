@@ -28,6 +28,10 @@ const requestSchema = z.object({
   path: ["docsUrl"]
 });
 
+app.get("/", (_req, res) => {
+  res.json({ ok: true, message: "ProofPilot V2 Backend Server is running." });
+});
+
 app.get("/health", (_req, res) => {
   const model = describeModelClient();
   res.json({

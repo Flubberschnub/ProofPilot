@@ -90,7 +90,7 @@ function claimReportMarkdown(report: ClaimReport) {
 }
 
 function backendServer() {
-  return `import express from "express";\nimport cors from "cors";\nconst app = express();\napp.use(cors());\napp.get('/api/mock/extraction', (_req,res)=>res.json({status:'completed', fields:[{name:'claim_number', value:'CLM-2026-001', confidence:0.98}]}));\napp.listen(3001,()=>console.log('Generated demo backend on http://localhost:3001'));\n`;
+  return `import express from "express";\nimport cors from "cors";\nconst app = express();\napp.use(cors());\napp.get('/', (_req, res) => res.json({ status: "ok", message: "ProofPilot Generated Demo Backend API is running." }));\napp.get('/api/mock/extraction', (_req,res)=>res.json({status:'completed', fields:[{name:'claim_number', value:'CLM-2026-001', confidence:0.98}]}));\napp.listen(3001,()=>console.log('Generated demo backend on http://localhost:3001'));\n`;
 }
 
 function css() {

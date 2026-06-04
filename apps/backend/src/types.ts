@@ -131,3 +131,11 @@ export type AgentRun = {
   outputSummary: string;
   error?: string;
 };
+
+export type VerificationOutput = {
+  compiles: boolean;
+  compilationErrors: string[];
+  satisfiesExpectations: boolean;
+  expectationsReport: string;
+  issuesFound: string[];
+};

@@ -41,7 +41,7 @@ export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapa
   const fallback = () => heuristicDemoPlan(input, capabilities);
   const response = await getModelClient().generateJson<DemoPlan>({
     schemaName: "DemoPlan",
-    system: agentSystemPrompt(),
+    system: "You are ProofPilot's source-grounded API demo planning agent. Do not invent API capabilities to satisfy the user's business scenario. If the user requests a workflow (e.g., 'document uploading' or 'claims intake') that is not supported by the retrieved Elastic documentation for the target API, you must handle that business logic entirely within the generated React/Node app as mock application logic. The target API must ONLY be used for its documented endpoints. Prefer precise, testable claims over broad marketing language.",
     prompt: [
       `Create a concise source-grounded demo plan for ${input.apiName}.`,
       `Industry: ${input.industry}`,
@@ -79,7 +79,7 @@ export async function validateClaims(sourceId: string, claims: DemoClaim[]): Pro
     const fallback = () => heuristicClaimCheck(claim, evidence);
     const result = await getModelClient().generateJson<{ status: DemoClaim["status"]; rewrite?: string }>({
       schemaName: "ClaimValidation",
-      system: agentSystemPrompt(),
+      system: "You are ProofPilot's claim audit checking agent. You must aggressively audit the 'Source-grounded claims' section. You must strip out any claim that the target API performs an action not explicitly found in the Elastic database. Ensure the final output clearly delineates between what the Custom Demo App does (e.g., 'The app allows users to upload a claim') and what the Target API does (e.g., 'Open-Meteo provides historical weather data for the claim location'). Prefer precise, testable claims over broad marketing language.",
       prompt: [
         "Validate the claim against the evidence.",
         "Use status supported only when the evidence directly supports the claim.",
@@ -143,6 +143,29 @@ function heuristicExtractCapabilities(chunks: SourceChunk[]): ApiCapability[] {
     }
   ].filter((c) => c.endpoints.length || c.evidenceChunkIds.length);
 
+  // If no specific document capabilities are matched, extract general ones from the endpoints/chunks
+  if (capabilities.length === 0) {
+    const uniqueEndpoints = [...new Set(endpoints)];
+    if (uniqueEndpoints.length > 0) {
+      capabilities.push({
+        name: "Query API data and endpoints",
+        description: "Enables querying documented API paths to fetch or update records.",
+        endpoints: uniqueEndpoints.slice(0, 3),
+        businessUseCases: ["data lookup", "system synchronization"],
+        evidenceChunkIds: chunks.slice(0, 3).map((c) => c.id)
+      });
+    } else if (chunks.length > 0) {
+      // Fallback if no endpoints are explicitly found but chunks exist
+      capabilities.push({
+        name: "Retrieve target documentation data",
+        description: "Integrates with documentation resources to retrieve API data.",
+        endpoints: ["GET /data"],
+        businessUseCases: ["information query"],
+        evidenceChunkIds: chunks.map((c) => c.id)
+      });
+    }
+  }
+
   return capabilities;
 }
 
@@ -150,6 +173,29 @@ function heuristicDemoPlan(input: DemoRequest, capabilities: ApiCapability[]): D
   const title = input.industry.toLowerCase().includes("insurance")
     ? "ClaimFlow: API-Powered Claims Intake Demo"
     : `${input.apiName} Bespoke API Demo`;
+
+  const claims: DemoClaim[] = [];
+  capabilities.forEach((cap, index) => {
+    const endpointList = cap.endpoints.length > 0 ? ` via ${cap.endpoints.join(', ')}` : '';
+    claims.push({
+      id: `claim_${index + 1}`,
+      text: `${input.apiName} supports ${cap.name.toLowerCase()}${endpointList}.`
+    });
+  });
+
+  // Ensure there is at least one target API capability claim
+  if (claims.length === 0) {
+    claims.push({
+      id: "claim_1",
+      text: `${input.apiName} provides data query and retrieval endpoints.`
+    });
+  }
+
+  // Add a claim that represents the custom app's business workflow to clearly delineate
+  claims.push({
+    id: `claim_${claims.length + 1}`,
+    text: `The Custom Demo App handles the user's business scenario (e.g., mock record submission or claims intake) entirely as frontend/mock application logic.`
+  });
 
   return {
     id: "plan_default",
@@ -176,13 +222,7 @@ function heuristicDemoPlan(input: DemoRequest, capabilities: ApiCapability[]): D
       "Reduces sales-engineering time spent handcrafting demos",
       "Keeps demo claims grounded in product documentation"
     ],
-    claims: [
-      { id: "claim_1", text: `${input.apiName} supports uploading documents or records for processing.` },
-      { id: "claim_2", text: `${input.apiName} returns structured fields that can be reviewed by a human operator.` },
-      { id: "claim_3", text: `${input.apiName} can export approved data to a downstream integration layer.` },
-      { id: "claim_4", text: `${input.apiName} directly integrates with the customer's existing core system.` },
-      { id: "claim_5", text: `${input.apiName} can reduce manual review effort, though exact savings depend on workflow design.` }
-    ]
+    claims
   };
 }
 

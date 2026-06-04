@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { apiUrl } from "./config";
+import ReactMarkdown from "react-markdown";
 
 type WorkflowResult = {
   model: { provider: string; model: string; configured: boolean; mode: string };
@@ -54,50 +55,99 @@ type WorkflowResult = {
   };
 };
 
-const sampleDocs = `# Acme Document Extraction API
+type LogEntry = {
+  text: string;
+  stage: string;
+};
 
-The Acme Document Extraction API lets applications upload business documents and extract structured fields from them.
+const sampleDocs = `# Open-Meteo Weather Forecast API
 
-## Authentication
+Open-Meteo offers free weather forecast APIs for non-commercial use. No API key is required.
 
-All requests use Bearer token authentication.
+## Endpoint: GET /v1/forecast
 
-## POST /documents/extract
+Retrieve weather forecasts by providing latitude and longitude coordinates.
 
-Uploads a document for extraction. Supported file types include PDF, PNG, and JPG. Request uses multipart/form-data with a file field and optional document_type.
+### Request Parameters:
+- latitude (float): Latitude coordinate (e.g. 37.3382 for San Jose)
+- longitude (float): Longitude coordinate (e.g. -121.8863 for San Jose)
+- hourly (string): List of hourly weather variables (e.g., temperature_2m, relative_humidity_2m, wind_speed_10m, precipitation, weather_code)
+- daily (string): List of daily weather variables (e.g., temperature_2m_max, temperature_2m_min, precipitation_sum)
+- current (string): Current weather variables (e.g., temperature_2m, wind_speed_10m)
 
-## GET /documents/{document_id}
+### Example Request:
+GET https://api.open-meteo.com/v1/forecast?latitude=37.3382&longitude=-121.8863&current=temperature_2m,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m
 
-Returns extraction status and extracted fields. Fields include a name, value, and confidence score.
-
-## POST /documents/{document_id}/approve
-
-Approves a reviewed extraction result.
-
-## POST /exports
-
-Exports approved structured data to a downstream system as JSON. The API does not directly integrate with Guidewire, Salesforce, or Epic; customers usually connect exports to their own integration layer.
-
-## Marketing note
-
-Customers often use Acme to reduce manual review effort, but exact time savings depend on document quality, workflow design, and human review policies.`;
+### Response format (JSON):
+Returns forecast timestamps, hourly temperature values, wind speeds, and precipitation variables.`;
 
 export default function App() {
-  const [apiName, setApiName] = useState("Acme Document Extraction API");
-  const [docsUrl, setDocsUrl] = useState("");
+  // State for Brief Form
+  const [apiName, setApiName] = useState("Open Meteo API");
+  const [docsUrl, setDocsUrl] = useState("https://open-meteo.com/en/docs");
   const [docsText, setDocsText] = useState(sampleDocs);
-  const [goal, setGoal] = useState("Show how a regional insurance company could reduce manual claim intake work by uploading claim PDFs, extracting fields, reviewing uncertain values, and exporting approved data.");
-  const [industry, setIndustry] = useState("Insurance");
-  const [audience, setAudience] = useState("executive");
-  const [result, setResult] = useState<WorkflowResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [goal, setGoal] = useState("We are a car insurance company in San Jose. We want to use the Open Meteo api (https://open-meteo.com/en/docs) to dynamically change the insurance premiums we charge.");
+  const [industry, setIndustry] = useState("Car Insurance");
+  const [audience, setAudience] = useState("technical");
+
+  // State for execution status
+  const [status, setStatus] = useState<"idle" | "generating" | "completed" | "error">("idle");
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  async function runWorkflow() {
-    setLoading(true);
+  // State for result display
+  const [result, setResult] = useState<WorkflowResult | null>(null);
+  const [activeTab, setActiveTab] = useState<"plan" | "code" | "claims" | "readme">("plan");
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll terminal log to bottom
+  useEffect(() => {
+    if (terminalEndRef.current) {
+      terminalEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [logs]);
+
+  // Form submission / run workflow
+  async function handleRunWorkflow(e: React.FormEvent) {
+    e.preventDefault();
+    if (!apiName.trim() || !industry.trim() || !goal.trim()) return;
+
+    setStatus("generating");
     setError(null);
+    setResult(null);
+    setLogs([
+      { text: "🚀 Connecting to agent orchestrator...", stage: "system" },
+      { text: "📡 Initializing agent workspace context...", stage: "system" },
+      { text: `🔍 Analyzing docs: ${apiName}`, stage: "info" }
+    ]);
+
+    // Simulated progress logging since the backend runs synchronously
+    let currentStep = 0;
+    const simulatedSteps = [
+      { text: "🔄 Running Source Capability Agent... Indexing documentation", stage: "info" },
+      { text: "🛠️ Running Demo Planner Agent... Designing screens and backend mock flows", stage: "info" },
+      { text: "🔍 Running Claim Checker Agent... Verifying marketing claims & audits", stage: "info" },
+      { text: "📦 Running Package Generator Agent... Compiling files for output pipeline", stage: "info" },
+      { text: "🚀 Running Export Agent... Exporting generated codebase to GitLab repository", stage: "info" },
+      { text: "⏳ Finalizing package output and GCS bucket artifacts...", stage: "system" }
+    ];
+
+    const timer = setInterval(() => {
+      if (currentStep < simulatedSteps.length) {
+        setLogs((prev) => [...prev, simulatedSteps[currentStep]]);
+        currentStep++;
+      }
+    }, 3000);
+
     try {
-      const response = await fetch(apiUrl("/api/workflow/run"), {
+      let targetUrl = apiUrl("/api/workflow/run");
+      if (!targetUrl.startsWith("http") && window.location.hostname === "localhost") {
+        targetUrl = `http://localhost:8080${targetUrl}`;
+      }
+
+      const response = await fetch(targetUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -111,114 +161,408 @@ export default function App() {
           liveApiAllowed: false
         })
       });
+
+      clearInterval(timer);
+
       if (!response.ok) throw new Error(await response.text());
-      setResult(await response.json());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
+      const data: WorkflowResult = await response.json();
+
+      setResult(data);
+      setStatus("completed");
+      setActiveTab("readme"); // Switch to setup tab when completed
+
+      // Print actual agent trace from backend
+      setLogs((prev) => [
+        ...prev,
+        { text: "🎉 Pipeline completed successfully!", stage: "complete" },
+        ...data.agents.map((agent) => ({
+          text: `🤖 [${agent.name}] ${agent.status} in ${agent.durationMs}ms\n   └─ ${agent.outputSummary || agent.error || ""}`,
+          stage: agent.status === "passed" ? "success" : "error"
+        }))
+      ]);
+    } catch (err: any) {
+      clearInterval(timer);
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      setError(errMsg);
+      setStatus("error");
+      setLogs((prev) => [
+        ...prev,
+        { text: `❌ Pipeline execution failed: ${errMsg}`, stage: "error" }
+      ]);
     }
   }
 
+  const getLogClass = (stage: string) => {
+    if (stage.endsWith("_complete") || stage === "complete") return "success";
+    if (stage === "error") return "error";
+    if (stage === "system") return "system";
+    return "info";
+  };
+
   const filePreview = useMemo(() => result?.files?.slice(0, 6) ?? [], [result]);
-  const artifact = result?.gitlab.artifact;
-  const artifactDownloadUrl = artifact?.downloadUrl?.startsWith("/api/")
+  const artifact = result?.gitlab?.artifact;
+  let artifactDownloadUrl = artifact?.downloadUrl?.startsWith("/api/")
     ? apiUrl(artifact.downloadUrl)
     : artifact?.downloadUrl?.startsWith("http")
       ? artifact.downloadUrl
       : undefined;
 
+  if (artifactDownloadUrl && !artifactDownloadUrl.startsWith("http") && window.location.hostname === "localhost") {
+    artifactDownloadUrl = `http://localhost:8080${artifactDownloadUrl}`;
+  }
+
   return (
     <main className="page">
-          <section className="hero">
-        <p className="eyebrow">Google Rapid Agent Hackathon scaffold</p>
-        <h1>ProofPilot</h1>
-        <p>Generate source-grounded API demos from product docs, docs URLs, and a customer scenario.</p>
+      <section className="hero">
+        <p className="eyebrow">Google Rapid Agent Hackathon</p>
+        <h1>ProofPilot V2</h1>
+        <p>Generate source-grounded API demos and customer scenarios using orchestrating AI agents.</p>
       </section>
 
-      <section className="grid">
-        <div className="card">
-          <h2>1. Demo brief</h2>
-          <label>API name</label>
-          <input value={apiName} onChange={(e) => setApiName(e.target.value)} />
+      <section className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "20px", alignItems: "start" }}>
+        
+        {/* Left Side: Brief Form */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <form onSubmit={handleRunWorkflow} className="card" style={{ textAlign: "left", margin: 0 }}>
+            <h2>1. Demo brief</h2>
+            
+            <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
+              <div style={{ flex: 1 }}>
+                <label>API name</label>
+                <input value={apiName} onChange={(e) => setApiName(e.target.value)} disabled={status === "generating"} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label>Industry</label>
+                <input value={industry} onChange={(e) => setIndustry(e.target.value)} disabled={status === "generating"} />
+              </div>
+            </div>
 
-          <label>Industry</label>
-          <input value={industry} onChange={(e) => setIndustry(e.target.value)} />
+            <label>Audience</label>
+            <select value={audience} onChange={(e) => setAudience(e.target.value)} disabled={status === "generating"} style={{ marginBottom: "12px" }}>
+              <option value="executive">Executive</option>
+              <option value="technical">Technical</option>
+              <option value="sales">Sales</option>
+              <option value="developer">Developer</option>
+            </select>
 
-          <label>Audience</label>
-          <select value={audience} onChange={(e) => setAudience(e.target.value)}>
-            <option value="executive">Executive</option>
-            <option value="technical">Technical</option>
-            <option value="sales">Sales</option>
-            <option value="developer">Developer</option>
-          </select>
+            <label>Goal</label>
+            <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={4} disabled={status === "generating"} style={{ marginBottom: "12px" }} />
 
-          <label>Goal</label>
-          <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={5} />
+            <label>Docs URL</label>
+            <input
+              placeholder="https://example.com/docs or OpenAPI URL"
+              value={docsUrl}
+              onChange={(e) => setDocsUrl(e.target.value)}
+              disabled={status === "generating"}
+              style={{ marginBottom: "12px" }}
+            />
 
-          <label>Docs URL</label>
-          <input
-            placeholder="https://example.com/docs or OpenAPI URL"
-            value={docsUrl}
-            onChange={(e) => setDocsUrl(e.target.value)}
-          />
+            <label>API docs fallback</label>
+            <textarea value={docsText} onChange={(e) => setDocsText(e.target.value)} rows={8} disabled={status === "generating"} />
 
-          <label>API docs fallback</label>
-          <textarea value={docsText} onChange={(e) => setDocsText(e.target.value)} rows={11} />
-
-          <button onClick={runWorkflow} disabled={loading}>{loading ? "Generating..." : "Generate grounded demo"}</button>
-          {error && <p className="error">{error}</p>}
+            <button type="submit" disabled={status === "generating" || !apiName.trim() || !industry.trim() || !goal.trim()}>
+              {status === "generating" ? "Generating..." : "Generate grounded demo"}
+            </button>
+            {error && <p className="error">{error}</p>}
+          </form>
         </div>
 
-        <div className="stack">
-          <section className="card">
-            <h2>2. Generated plan</h2>
-            {!result ? <p className="muted">Run the workflow to generate a plan.</p> : <>
-              <p className="muted">Runtime: {result.agentRuntime.mode}. Model: {result.model.provider} / {result.model.model}</p>
-              <p className="muted">Docs: {result.docsSourceUrl ?? "pasted text"}{result.docsCharacters ? ` (${result.docsCharacters.toLocaleString()} chars)` : ""}</p>
-              <h3>{result.plan.title}</h3>
-              <p>{result.plan.story}</p>
-              <div className="chips">{result.plan.screens.map((s) => <span key={s}>{s}</span>)}</div>
-            </>}
-          </section>
-
-          <section className="card">
-            <h2>Agent pipeline</h2>
-            {!result ? <p className="muted">Each README MVP step will appear here as a completed agent run.</p> : <div className="agent-list">
-              {result.agents.map((agent) => (
-                <article key={agent.id} className="agent-row">
-                  <div>
-                    <strong>{agent.name}</strong>
-                    <p>{agent.outputSummary || agent.error}</p>
-                    <small>{agent.tools.join(", ")}</small>
+        {/* Right Side: Terminal Log & Interactive Visualizer Dashboard */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          
+          {/* Terminal Console */}
+          <div className="card terminal" style={{ margin: 0, padding: 0 }}>
+            <div className="terminal-header">
+              <span className="terminal-dot dot-red"></span>
+              <span className="terminal-dot dot-yellow"></span>
+              <span className="terminal-dot dot-green"></span>
+              <span className="terminal-title">agent_orchestration.sh</span>
+              {status === "generating" && <span className="terminal-caret"></span>}
+            </div>
+            <div className="terminal-body" style={{ height: "260px" }}>
+              {logs.length === 0 ? (
+                <div className="terminal-line system">&gt; Standing by. Trigger workflow to start...</div>
+              ) : (
+                logs.map((log, index) => (
+                  <div key={index} className={`terminal-line ${getLogClass(log.stage)}`} style={{ whiteSpace: "pre-wrap" }}>
+                    &gt; {log.text}
                   </div>
-                  <span className={`badge ${agent.status}`}>{agent.durationMs}ms</span>
-                </article>
-              ))}
-            </div>}
-          </section>
+                ))
+              )}
+              <div ref={terminalEndRef} />
+            </div>
+          </div>
 
-          <section className="card">
-            <h2>3. Elastic-powered claim report</h2>
-            {!result ? <p className="muted">Claims will be checked against retrieved doc evidence.</p> : <table>
-              <thead><tr><th>Claim</th><th>Status</th></tr></thead>
-              <tbody>{result.claimReport.claims.map((c) => <tr key={c.id}><td>{c.rewrite ?? c.text}</td><td><span className={`badge ${c.status}`}>{c.status}</span></td></tr>)}</tbody>
-            </table>}
-          </section>
+          {/* Interactive Visualizer Dashboard */}
+          <div className="card" style={{ margin: 0, minHeight: "400px", display: "flex", flexDirection: "column" }}>
+            {!result ? (
+              <div className="muted" style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "10px", padding: "40px", minHeight: "320px" }}>
+                <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ color: "#a1a1aa", marginBottom: "8px" }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1A3.75 3.75 0 0012 18z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.808 13.064l.707.707M12 21v-1m6.364-1.636l.707.707M16.243 4.757l-.707-.707" />
+                </svg>
+                <strong>Awaiting agent pipeline execution...</strong>
+                <span style={{ fontSize: "13px", color: "#a1a1aa", textAlign: "center", maxWidth: "280px" }}>
+                  Fill out the Demo brief form and click \"Generate grounded demo\" to run the AI fleet.
+                </span>
+              </div>
+            ) : (
+              <>
+                {/* Tab Selector */}
+                <div className="tabs-container">
+                  <button
+                    onClick={() => setActiveTab("plan")}
+                    className={`tab-btn ${activeTab === "plan" ? "active" : ""}`}
+                  >
+                    Technical Plan
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("code")}
+                    className={`tab-btn ${activeTab === "code" ? "active" : ""}`}
+                    disabled={!result.files || result.files.length === 0}
+                  >
+                    Generated Files
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("claims")}
+                    className={`tab-btn ${activeTab === "claims" ? "active" : ""}`}
+                    disabled={!result.claimReport}
+                  >
+                    Claim Audit
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("readme")}
+                    className={`tab-btn ${activeTab === "readme" ? "active" : ""}`}
+                  >
+                    Setup & Export
+                  </button>
+                </div>
 
-          <section className="card">
-            <h2>4. Generated package</h2>
-            {!result ? <p className="muted">Generated files and GitLab export appear here.</p> : <>
-              <p><strong>{result.files.length}</strong> files generated. Package check: <strong>{result.packageCheck.status}</strong>. GitLab mode: <strong>{result.gitlab.mode}</strong></p>
-              {artifactDownloadUrl && <p><a className="download-link" href={artifactDownloadUrl} download={artifact?.fileName}>Download demo zip</a></p>}
-              {artifact && <p className="muted">Artifact: {artifact.mode} / {artifact.fileName}{artifact.sizeBytes ? ` (${Math.round(artifact.sizeBytes / 1024)} KB)` : ""}</p>}
-              {artifact?.message && <p className="muted">{artifact.message}</p>}
-              {artifact?.objectName && <p className="muted">Object: <code>{artifact.objectName}</code></p>}
-              {result.gitlab.url && <a href={result.gitlab.url}>{result.gitlab.url}</a>}
-              {result.gitlab.localPath && <p className="muted">Local export: <code>{result.gitlab.localPath}</code></p>}
-              <ul>{filePreview.map((f) => <li key={f.path}><code>{f.path}</code></li>)}</ul>
-            </>}
-          </section>
+                {/* Tab Contents */}
+                <div style={{ flex: 1, overflowY: "auto", paddingBottom: "10px" }}>
+                  
+                  {/* TAB: PLAN */}
+                  {activeTab === "plan" && (
+                    <div style={{ textAlign: "left" }}>
+                      <h3 style={{ color: "#4f46e5", margin: "0 0 8px 0" }}>{result.plan.title}</h3>
+                      <p style={{ color: "#71717a", fontSize: "14px", margin: "0 0 16px 0", lineHeight: 1.5 }}>
+                        {result.plan.story}
+                      </p>
+
+                      <h4 style={{ margin: "16px 0 6px 0", color: "#1f2937" }}>Mocks & Screens</h4>
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" }}>
+                        {result.plan.screens.map((screen, i) => (
+                          <span key={i} style={{ background: "#f1f5f9", color: "#475569", padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600 }}>
+                            {screen}
+                          </span>
+                        ))}
+                      </div>
+
+                      <h4 style={{ margin: "16px 0 6px 0", color: "#1f2937" }}>Endpoints Handled</h4>
+                      <ul style={{ paddingLeft: "20px", color: "#334155", margin: "0 0 16px 0" }}>
+                        {result.plan.endpointsUsed.map((ep, i) => (
+                          <li key={i} style={{ marginBottom: "6px" }}>
+                            <code style={{ background: "#f0fdf4", color: "#166534", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontFamily: "monospace" }}>
+                              {ep}
+                            </code>
+                          </li>
+                        ))}
+                      </ul>
+
+                      {result.plan.businessValue && result.plan.businessValue.length > 0 && (
+                        <>
+                          <h4 style={{ margin: "16px 0 6px 0", color: "#1f2937" }}>Business Case & Value</h4>
+                          <ul style={{ paddingLeft: "20px", color: "#334155", margin: 0 }}>
+                            {result.plan.businessValue.map((val, i) => (
+                              <li key={i} style={{ marginBottom: "6px", fontSize: "13px", lineHeight: 1.4 }}>
+                                {val}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* TAB: CODE */}
+                  {activeTab === "code" && result.files && result.files.length > 0 && (
+                    <div>
+                      <div style={{ display: "flex", gap: "6px", marginBottom: "12px", overflowX: "auto", paddingBottom: "4px" }}>
+                        {result.files.map((file, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setSelectedFileIndex(idx)}
+                            className={`tab-btn ${selectedFileIndex === idx ? "active" : ""}`}
+                            style={{ fontSize: "12px", padding: "4px 8px" }}
+                          >
+                            {file.path.split("/").pop()}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <div style={{ fontSize: "13px", color: "#71717a", marginBottom: "6px", textAlign: "left" }}>
+                        File Path: <code>{result.files[selectedFileIndex]?.path}</code>
+                      </div>
+                      <pre className="code-block" style={{ margin: 0 }}>
+                        {result.files[selectedFileIndex]?.content}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* TAB: CLAIMS */}
+                  {activeTab === "claims" && result.claimReport && (
+                    <div style={{ textAlign: "left" }}>
+                      <h3 style={{ color: "#0d9488", margin: "0 0 12px 0" }}>Elastic-Powered Claim Verification</h3>
+                      
+                      <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+                        <span style={{ background: "#dcfce7", color: "#166534", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: 600 }}>
+                          Supported: {result.claimReport.summary?.supported ?? 0}
+                        </span>
+                        <span style={{ background: "#fef9c3", color: "#854d0e", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: 600 }}>
+                          Inferred: {result.claimReport.summary?.inferred ?? 0}
+                        </span>
+                        <span style={{ background: "#fee2e2", color: "#991b1b", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: 600 }}>
+                          Unsupported: {result.claimReport.summary?.unsupported ?? 0}
+                        </span>
+                        <span style={{ background: "#f3e8ff", color: "#6b21a8", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: 600 }}>
+                          Marketing: {result.claimReport.summary?.marketing ?? 0}
+                        </span>
+                      </div>
+
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                          <thead>
+                            <tr style={{ borderBottom: "2px solid #e4e4e7" }}>
+                              <th style={{ padding: "10px 8px", textAlign: "left" }}>Claim Statement</th>
+                              <th style={{ padding: "10px 8px", textAlign: "center", width: "120px" }}>Verification</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {result.claimReport.claims.map((c) => (
+                              <tr key={c.id} style={{ borderBottom: "1px solid #e4e4e7" }}>
+                                <td style={{ padding: "10px 8px", color: "#374151" }}>{c.rewrite ?? c.text}</td>
+                                <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                                  <span style={{
+                                    padding: "2px 8px",
+                                    borderRadius: "4px",
+                                    fontSize: "11px",
+                                    fontWeight: 600,
+                                    textTransform: "capitalize",
+                                    background: c.status === "supported" ? "#dcfce7" : c.status === "inferred" ? "#fef9c3" : c.status === "unsupported" ? "#fee2e2" : "#f3f4f6",
+                                    color: c.status === "supported" ? "#15803d" : c.status === "inferred" ? "#a16207" : c.status === "unsupported" ? "#b91c1c" : "#4b5563"
+                                  }}>
+                                    {c.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB: README / SETUP */}
+                  {activeTab === "readme" && (
+                    <div style={{ textAlign: "left" }}>
+                      <div style={{ background: "#f8fafc", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: "20px" }}>
+                        <h3 style={{ margin: "0 0 12px 0", color: "#0f172a", fontSize: "16px", fontWeight: 700 }}>📦 Delivery Package</h3>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
+                          <span style={{ background: "#e2e8f0", color: "#334155", padding: "4px 8px", borderRadius: "6px", fontSize: "12px", fontWeight: 600 }}>
+                            Files: {result.files?.length ?? 0}
+                          </span>
+                          <span style={{
+                            padding: "4px 8px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            background: result.packageCheck.status === "passed" ? "#dcfce7" : "#fee2e2",
+                            color: result.packageCheck.status === "passed" ? "#15803d" : "#b91c1c"
+                          }}>
+                            Package Check: {result.packageCheck.status}
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                          {artifactDownloadUrl && (
+                            <a
+                              href={artifactDownloadUrl}
+                              download={artifact?.fileName}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                background: "#4f46e5",
+                                color: "white",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                textDecoration: "none",
+                                fontWeight: 600,
+                                fontSize: "13px",
+                                gap: "6px",
+                                transition: "background 0.2s"
+                              }}
+                              onMouseOver={(e) => (e.currentTarget.style.background = "#4338ca")}
+                              onMouseOut={(e) => (e.currentTarget.style.background = "#4f46e5")}
+                            >
+                              📥 Download Demo ZIP
+                              {artifact?.sizeBytes && (
+                                <span style={{ fontSize: "11px", opacity: 0.8, fontWeight: 400 }}>
+                                  ({Math.round(artifact.sizeBytes / 1024)} KB)
+                                </span>
+                              )}
+                            </a>
+                          )}
+
+                          {result.gitlab.url && (
+                            <a
+                              href={result.gitlab.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                background: "#0f172a",
+                                color: "white",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                textDecoration: "none",
+                                fontWeight: 600,
+                                fontSize: "13px",
+                                gap: "6px",
+                                transition: "background 0.2s"
+                              }}
+                              onMouseOver={(e) => (e.currentTarget.style.background = "#1e293b")}
+                              onMouseOut={(e) => (e.currentTarget.style.background = "#0f172a")}
+                            >
+                              🦊 View Repository
+                            </a>
+                          )}
+                        </div>
+
+                        {result.gitlab.localPath && (
+                          <div style={{ marginTop: "14px", fontSize: "12px", color: "#64748b", borderTop: "1px solid #e2e8f0", paddingTop: "12px" }}>
+                            📁 Local Folder Export Path: <code style={{ wordBreak: "break-all" }}>{result.gitlab.localPath}</code>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="markdown-body" style={{ marginTop: "24px" }}>
+                        <ReactMarkdown
+                          components={{
+                            a: ({ node, ...props }) => (
+                              <a {...props} target="_blank" rel="noopener noreferrer" />
+                            )
+                          }}
+                        >
+                          {result.files.find(f => f.path.toLowerCase() === 'readme.md')?.content || "# Setup Guide\n\nNo README.md file generated in this package."}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </section>
     </main>
