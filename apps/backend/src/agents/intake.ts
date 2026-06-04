@@ -33,7 +33,7 @@ You MUST respond strictly with a valid JSON object matching the following struct
   const prompt = `Analyze this user request: "${userPrompt}"`;
   
   try {
-    const result = await generateJSON<any>('gemini-1.5-flash', prompt, systemInstruction);
+    const result = await generateJSON<any>('gemini-2.5-flash', prompt, systemInstruction);
     return result;
   } catch (error) {
     console.error('[Intake Agent] Error running agent:', error);

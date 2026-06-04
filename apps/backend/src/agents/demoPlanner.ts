@@ -54,7 +54,7 @@ API Capabilities: ${JSON.stringify(capabilities, null, 2)}
 `;
 
   try {
-    const result = await generateJSON<any>('gemini-1.5-flash', prompt, systemInstruction);
+    const result = await generateJSON<any>('gemini-2.5-flash', prompt, systemInstruction);
     return result;
   } catch (error) {
     console.error('[Demo Planner Agent] Error drafting plan:', error);

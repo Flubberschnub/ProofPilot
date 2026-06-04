@@ -93,7 +93,7 @@ ${docVerificationContext ? docVerificationContext : 'No database documents match
 `;
 
   try {
-    const result = await generateJSON<any>('gemini-1.5-flash', prompt, systemInstruction);
+    const result = await generateJSON<any>('gemini-2.5-flash', prompt, systemInstruction);
     return result;
   } catch (error) {
     console.error('[Claim Checker Agent] Error during verification:', error);

@@ -20,7 +20,7 @@ export async function generateContentWithRetry(modelName: string, contents: any)
     throw new Error('GEMINI_API_KEY is missing. Please set it in your backend environment variables.');
   }
 
-  const model = genAI.getGenerativeModel({ model: modelName || 'gemini-1.5-flash' });
+  const model = genAI.getGenerativeModel({ model: modelName || 'gemini-2.5-flash' });
   let attempt = 0;
   let delayMs = 5000;
 

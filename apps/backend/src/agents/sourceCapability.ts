@@ -108,7 +108,7 @@ ${docs ? `Here are some matched documentation pieces from Elasticsearch database
 `;
 
   try {
-    const result = await generateJSON<any>('gemini-1.5-flash', prompt, systemInstruction);
+    const result = await generateJSON<any>('gemini-2.5-flash', prompt, systemInstruction);
     return result;
   } catch (error) {
     console.error('[SourceCapabilityAgent] Error generating capabilities:', error);
