@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createAgentContext } from "./agents/runtime.js";
 import { listWorkflowAgents } from "./agents/workflow-agents.js";
 import { describeModelClient } from "./models/index.js";
+import { downloadGeneratedArtifact } from "./services/artifacts.js";
 import { runProofPilotWorkflow } from "./workflow.js";
 
 dotenv.config();
@@ -44,6 +45,17 @@ app.post("/api/workflow/run", async (req, res, next) => {
     const input = requestSchema.parse(req.body);
     const result = await runProofPilotWorkflow(input);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/api/exports/:objectId/download", async (req, res, next) => {
+  try {
+    const artifact = await downloadGeneratedArtifact(req.params.objectId);
+    res.setHeader("Content-Type", artifact.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${artifact.fileName}"`);
+    res.send(artifact.data);
   } catch (err) {
     next(err);
   }

@@ -7,6 +7,7 @@ describe("runProofPilotWorkflow", () => {
     process.env.MOCK_MODE = "true";
     process.env.PROOFPILOT_MODEL_PROVIDER = "mock";
     process.env.PROOFPILOT_ELASTIC_PROVIDER = "memory";
+    delete process.env.PROOFPILOT_EXPORT_BUCKET;
 
     const docsText = readFileSync(new URL("../../../sample-data/document-extraction-api.md", import.meta.url), "utf8");
 
@@ -34,5 +35,6 @@ describe("runProofPilotWorkflow", () => {
     expect(result.packageCheck.status).toBe("passed");
     expect(result.gitlab.mode).toBe("mock");
     expect(result.gitlab.localPath).toContain(".generated");
+    expect(result.gitlab.artifact?.mode).toBe("local");
   });
 });

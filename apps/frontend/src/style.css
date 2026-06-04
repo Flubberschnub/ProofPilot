@@ -10,6 +10,7 @@ label { display: block; margin-top: 14px; font-size: 13px; font-weight: 700; }
 input, textarea, select { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 12px; border: 1px solid #d4d4d8; border-radius: 14px; font: inherit; }
 button { margin-top: 18px; width: 100%; border: 0; border-radius: 16px; padding: 14px 16px; font-weight: 800; background: #18181b; color: white; cursor: pointer; }
 button:disabled { opacity: .6; cursor: wait; }
+.download-link { display: inline-flex; align-items: center; border-radius: 8px; background: #18181b; color: white; padding: 10px 12px; font-weight: 800; text-decoration: none; }
 .muted { color: #71717a; }
 .error { color: #b91c1c; white-space: pre-wrap; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }

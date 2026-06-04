@@ -33,7 +33,21 @@ type WorkflowResult = {
     status: string;
     checks: Array<{ name: string; status: string; message: string }>;
   };
-  gitlab: { mode: string; url: string | null; message: string; filesCommitted: number; localPath?: string };
+  gitlab: {
+    mode: string;
+    url: string | null;
+    message: string;
+    filesCommitted: number;
+    localPath?: string;
+    artifact?: {
+      mode: string;
+      fileName: string;
+      downloadUrl: string | null;
+      message: string;
+      sizeBytes?: number;
+      localPath?: string;
+    };
+  };
 };
 
 const sampleDocs = `# Acme Document Extraction API
@@ -100,6 +114,12 @@ export default function App() {
   }
 
   const filePreview = useMemo(() => result?.files?.slice(0, 6) ?? [], [result]);
+  const artifact = result?.gitlab.artifact;
+  const artifactDownloadUrl = artifact?.downloadUrl?.startsWith("/api/")
+    ? apiUrl(artifact.downloadUrl)
+    : artifact?.downloadUrl?.startsWith("http")
+      ? artifact.downloadUrl
+      : undefined;
 
   return (
     <main className="page">
@@ -172,6 +192,8 @@ export default function App() {
             <h2>4. Generated package</h2>
             {!result ? <p className="muted">Generated files and GitLab export appear here.</p> : <>
               <p><strong>{result.files.length}</strong> files generated. Package check: <strong>{result.packageCheck.status}</strong>. GitLab mode: <strong>{result.gitlab.mode}</strong></p>
+              {artifactDownloadUrl && <p><a className="download-link" href={artifactDownloadUrl}>Download demo zip</a></p>}
+              {artifact && <p className="muted">Artifact: {artifact.mode} / {artifact.fileName}{artifact.sizeBytes ? ` (${Math.round(artifact.sizeBytes / 1024)} KB)` : ""}</p>}
               {result.gitlab.url && <a href={result.gitlab.url}>{result.gitlab.url}</a>}
               {result.gitlab.localPath && <p className="muted">Local export: <code>{result.gitlab.localPath}</code></p>}
               <ul>{filePreview.map((f) => <li key={f.path}><code>{f.path}</code></li>)}</ul>

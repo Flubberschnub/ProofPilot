@@ -82,6 +82,18 @@ export type GitLabExportResult = {
   message: string;
   projectId?: number;
   localPath?: string;
+  artifact?: GeneratedArtifact;
+};
+
+export type GeneratedArtifact = {
+  mode: "gcs" | "local" | "disabled" | "failed";
+  fileName: string;
+  downloadUrl: string | null;
+  message: string;
+  bucket?: string;
+  objectName?: string;
+  localPath?: string;
+  sizeBytes?: number;
 };
 
 export type ModelRunInfo = {
