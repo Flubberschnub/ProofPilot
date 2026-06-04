@@ -1,5 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { apiUrl } from "./config";
+import ReactMarkdown from "react-markdown";
+
 
 type WorkflowResult = {
   model: { provider: string; model: string; configured: boolean; mode: string };
@@ -509,8 +511,16 @@ export default function App() {
                 <div key={i} className="key-instruction-card">
                   <h3>🔑 {key.name}</h3>
                   <p><strong>Purpose:</strong> {key.purpose}</p>
-                  <div style={{ color: "#374151", fontSize: "13px", whiteSpace: "pre-wrap", background: "#f8fafc", padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                    {key.instruction}
+                  <div style={{ color: "#374151", fontSize: "13px", background: "#f8fafc", padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                    <ReactMarkdown
+                      components={{
+                        a: ({ node, ...props }) => (
+                          <a {...props} target="_blank" rel="noopener noreferrer" />
+                        )
+                      }}
+                    >
+                      {key.instruction}
+                    </ReactMarkdown>
                   </div>
                 </div>
               ))}
