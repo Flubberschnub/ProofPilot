@@ -10,6 +10,9 @@ export type DemoRequest = {
   goal: string;
   preferredStack?: string;
   liveApiAllowed: boolean;
+  customerId?: string;
+  customerPersona?: string;
+  targetSystem?: string;
 };
 
 export type WorkflowRequest = Omit<DemoRequest, "docsText"> & {
@@ -22,8 +25,25 @@ export type SourceChunk = {
   sourceId: string;
   title: string;
   text: string;
-  sourceType: "markdown" | "openapi" | "example";
+  sourceType: "markdown" | "openapi" | "example" | "customer";
   metadata?: Record<string, unknown>;
+};
+
+export type BusinessSignal = {
+  id: string;
+  title: string;
+  summary: string;
+  department?: string;
+  metric?: string;
+  evidenceChunkIds: string[];
+};
+
+export type BusinessContext = {
+  customerId?: string;
+  sourceId?: string;
+  chunks: SourceChunk[];
+  evidence: SourceChunk[];
+  signals: BusinessSignal[];
 };
 
 export type ApiCapability = {

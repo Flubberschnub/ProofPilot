@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import type { WorkflowRequest } from "./types.js";
 import {
+  businessContextAgent,
   claimCheckerAgent,
   demoPlannerAgent,
   exportAgent,
@@ -15,14 +16,22 @@ export async function runProofPilotWorkflow(input: WorkflowRequest) {
   const model = describeModelClient();
   const agentContext = createAgentContext(model);
   const sourceId = `src_${nanoid(8)}`;
+  const businessSourceId = `biz_${nanoid(8)}`;
 
   const intake = await runAgent(intakeAgent, input, agentContext);
   const sourceCapability = await runAgent(sourceCapabilityAgent, { sourceId, input: intake.input }, agentContext);
-  const plan = await runAgent(demoPlannerAgent, {
+  const businessContext = await runAgent(businessContextAgent, {
+    sourceId: businessSourceId,
     input: intake.input,
     capabilities: sourceCapability.capabilities
   }, agentContext);
-  const claimReport = await runAgent(claimCheckerAgent, { sourceId, claims: plan.claims }, agentContext);
+  const plan = await runAgent(demoPlannerAgent, {
+    input: intake.input,
+    capabilities: sourceCapability.capabilities,
+    businessContext
+  }, agentContext);
+  const claimSourceIds = businessContext.sourceId ? [sourceId, businessContext.sourceId] : [sourceId];
+  const claimReport = await runAgent(claimCheckerAgent, { sourceIds: claimSourceIds, claims: plan.claims }, agentContext);
   const generatedPackage = await runAgent(packageGeneratorAgent, {
     input: intake.input,
     plan,
@@ -38,9 +47,12 @@ export async function runProofPilotWorkflow(input: WorkflowRequest) {
     agentRuntime: agentContext.runtime,
     agents: agentContext.trace,
     sourceId,
+    businessSourceId: businessContext.sourceId,
     docsSourceUrl: intake.input.docsSourceUrl,
     docsCharacters: intake.input.docsText.length,
     chunksIndexed: sourceCapability.chunks.length,
+    customerChunksIndexed: businessContext.chunks.length,
+    businessContext,
     capabilities: sourceCapability.capabilities,
     plan,
     claimReport,

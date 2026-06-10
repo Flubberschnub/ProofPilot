@@ -1,5 +1,6 @@
 import type {
   ApiCapability,
+  BusinessContext,
   ClaimReport,
   DemoPlan,
   DemoRequest,
@@ -10,8 +11,9 @@ import type {
   WorkflowRequest
 } from "../types.js";
 import { resolveWorkflowDocs } from "../services/docs.js";
-import { extractCapabilities, generateDemoPlan, validateClaims } from "../services/agent.js";
-import { indexDocs } from "../services/elastic.js";
+import { extractBusinessSignals, extractCapabilities, generateDemoPlan, validateClaimsAcross } from "../services/agent.js";
+import { indexCustomerData, indexDocs } from "../services/elastic.js";
+import { loadSampleCustomerDocuments } from "../services/customer-data.js";
 import { exportToGitLab } from "../services/gitlab.js";
 import { generateDemoFiles } from "../services/generator.js";
 import { validateGeneratedPackage } from "./package-check.js";
@@ -26,6 +28,8 @@ export type SourceCapabilityOutput = {
   chunks: SourceChunk[];
   capabilities: ApiCapability[];
 };
+
+export type BusinessContextOutput = BusinessContext;
 
 export type PackageOutput = {
   files: GeneratedFile[];
@@ -51,7 +55,10 @@ export const intakeAgent: ProofPilotAgent<WorkflowRequest, IntakeOutput> = {
         docsText: resolved.docsText.trim(),
         industry: resolved.industry.trim(),
         goal: resolved.goal.trim(),
-        preferredStack: resolved.preferredStack?.trim()
+        preferredStack: resolved.preferredStack?.trim(),
+        customerId: resolved.customerId?.trim() || undefined,
+        customerPersona: resolved.customerPersona?.trim() || undefined,
+        targetSystem: resolved.targetSystem?.trim() || undefined
       }
     };
   },
@@ -73,23 +80,52 @@ export const sourceCapabilityAgent: ProofPilotAgent<{ sourceId: string; input: D
   summarizeOutput: (output) => `${output.chunks.length} chunks, ${output.capabilities.length} capabilities`
 };
 
-export const demoPlannerAgent: ProofPilotAgent<{ input: DemoRequest; capabilities: ApiCapability[] }, DemoPlan> = {
-  id: "mvp-03-demo-planner",
+export const businessContextAgent: ProofPilotAgent<
+  { sourceId: string; input: DemoRequest; capabilities: ApiCapability[] },
+  BusinessContextOutput
+> = {
+  id: "mvp-03-business-context",
+  name: "Business Context Agent",
+  description: "Indexes proprietary customer data and extracts evidence-linked business signals for bespoke demo planning.",
+  tools: ["sampleData.loadCustomerDocuments", "elastic.indexCustomerData", "model.extractBusinessSignals"],
+  async run({ sourceId, input, capabilities }) {
+    if (!input.customerId) return { chunks: [], evidence: [], signals: [] };
+
+    const documents = await loadSampleCustomerDocuments(input.customerId);
+    const chunks = await indexCustomerData(sourceId, input.customerId, documents);
+    const signals = await extractBusinessSignals(input, chunks, capabilities);
+    const evidenceIds = new Set(signals.flatMap((signal) => signal.evidenceChunkIds));
+    const evidence = chunks.filter((chunk) => evidenceIds.has(chunk.id));
+
+    return {
+      customerId: input.customerId,
+      sourceId,
+      chunks,
+      evidence,
+      signals
+    };
+  },
+  summarizeInput: ({ sourceId, input }) => `${sourceId}; customer=${input.customerId ?? "none"}`,
+  summarizeOutput: (output) => `${output.chunks.length} customer chunks, ${output.signals.length} business signals`
+};
+
+export const demoPlannerAgent: ProofPilotAgent<{ input: DemoRequest; capabilities: ApiCapability[]; businessContext?: BusinessContext }, DemoPlan> = {
+  id: "mvp-04-demo-planner",
   name: "Demo Planner Agent",
-  description: "Generates a tailored demo plan from retrieved capabilities.",
+  description: "Generates a tailored demo plan from retrieved capabilities and customer business context.",
   tools: ["model.generateDemoPlan"],
-  run: ({ input, capabilities }) => generateDemoPlan(input, capabilities),
-  summarizeInput: ({ input, capabilities }) => `${input.apiName}; ${capabilities.length} capabilities`,
+  run: ({ input, capabilities, businessContext }) => generateDemoPlan(input, capabilities, businessContext),
+  summarizeInput: ({ input, capabilities, businessContext }) => `${input.apiName}; ${capabilities.length} capabilities; ${businessContext?.signals.length ?? 0} signals`,
   summarizeOutput: (plan) => `${plan.title}; ${plan.screens.length} screens, ${plan.claims.length} claims`
 };
 
-export const claimCheckerAgent: ProofPilotAgent<{ sourceId: string; claims: DemoPlan["claims"] }, ClaimReport> = {
-  id: "mvp-04-claim-checker",
+export const claimCheckerAgent: ProofPilotAgent<{ sourceIds: string[]; claims: DemoPlan["claims"] }, ClaimReport> = {
+  id: "mvp-05-claim-checker",
   name: "Claim Checker Agent",
-  description: "Validates generated claims against retrieved source evidence.",
-  tools: ["elastic.retrieveEvidence", "model.validateClaims"],
-  run: ({ sourceId, claims }) => validateClaims(sourceId, claims),
-  summarizeInput: ({ sourceId, claims }) => `${sourceId}; ${claims.length} claims`,
+  description: "Validates generated claims against retrieved API and customer evidence.",
+  tools: ["elastic.retrieveEvidenceAcross", "model.validateClaims"],
+  run: ({ sourceIds, claims }) => validateClaimsAcross(sourceIds, claims),
+  summarizeInput: ({ sourceIds, claims }) => `${sourceIds.join(", ")}; ${claims.length} claims`,
   summarizeOutput: (report) => `${report.summary.supported} supported, ${report.summary.unsupported} unsupported, ${report.summary.marketing} marketing`
 };
 
@@ -97,7 +133,7 @@ export const packageGeneratorAgent: ProofPilotAgent<
   { input: DemoRequest; plan: DemoPlan; claimReport: ClaimReport },
   PackageOutput
 > = {
-  id: "mvp-05-package-generator",
+  id: "mvp-06-package-generator",
   name: "Package Generator Agent",
   description: "Creates the React and Node demo package and validates required generated files.",
   tools: ["template.generateDemoFiles", "package.validateGeneratedPackage"],
@@ -110,7 +146,7 @@ export const packageGeneratorAgent: ProofPilotAgent<
 };
 
 export const exportAgent: ProofPilotAgent<ExportInput, GitLabExportResult> = {
-  id: "mvp-06-export",
+  id: "mvp-07-export",
   name: "Export Agent",
   description: "Exports generated artifacts to GitLab or returns a local mock export summary.",
   tools: ["gitlab.exportToGitLab"],
@@ -123,6 +159,7 @@ export function listWorkflowAgents() {
   return [
     intakeAgent,
     sourceCapabilityAgent,
+    businessContextAgent,
     demoPlannerAgent,
     claimCheckerAgent,
     packageGeneratorAgent,

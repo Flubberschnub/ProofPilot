@@ -16,8 +16,14 @@ type WorkflowResult = {
     error?: string;
   }>;
   chunksIndexed: number;
+  customerChunksIndexed?: number;
   docsSourceUrl?: string;
   docsCharacters?: number;
+  businessContext?: {
+    customerId?: string;
+    chunks: Array<{ id: string; title: string }>;
+    signals: Array<{ id: string; title: string; summary: string; department?: string; metric?: string; evidenceChunkIds: string[] }>;
+  };
   capabilities: Array<{ name: string; description: string; endpoints: string[] }>;
   plan: {
     title: string;
@@ -86,9 +92,12 @@ export default function App() {
   const [apiName, setApiName] = useState("Acme Document Extraction API");
   const [docsUrl, setDocsUrl] = useState("");
   const [docsText, setDocsText] = useState(sampleDocs);
-  const [goal, setGoal] = useState("Show how a regional insurance company could reduce manual claim intake work by uploading claim PDFs, extracting fields, reviewing uncertain values, and exporting approved data.");
-  const [industry, setIndustry] = useState("Insurance");
+  const [goal, setGoal] = useState("Show how AeroCore could reduce billing and dispatch reconciliation work by extracting fields from invoices, repair logs, pilot records, and lease documents, then exporting reviewed data to its integration layer.");
+  const [industry, setIndustry] = useState("Industrial equipment leasing");
   const [audience, setAudience] = useState("executive");
+  const [customerId, setCustomerId] = useState("aerocore-leasing");
+  const [customerPersona, setCustomerPersona] = useState("Sarah Jenkins, Billing & Finance Administrator");
+  const [targetSystem, setTargetSystem] = useState("Salesforce Lease_Agreement__c custom object");
   const [result, setResult] = useState<WorkflowResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +117,10 @@ export default function App() {
           audience,
           goal,
           preferredStack: "React + Node",
-          liveApiAllowed: false
+          liveApiAllowed: false,
+          customerId: customerId.trim() || undefined,
+          customerPersona: customerPersona.trim() || undefined,
+          targetSystem: targetSystem.trim() || undefined
         })
       });
       const responseText = await response.text();
@@ -162,6 +174,19 @@ export default function App() {
           <label>Goal</label>
           <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={5} />
 
+          <label>Customer data set</label>
+          <input
+            placeholder="sample-data folder name, e.g. aerocore-leasing"
+            value={customerId}
+            onChange={(e) => setCustomerId(e.target.value)}
+          />
+
+          <label>Customer persona</label>
+          <input value={customerPersona} onChange={(e) => setCustomerPersona(e.target.value)} />
+
+          <label>Target system</label>
+          <input value={targetSystem} onChange={(e) => setTargetSystem(e.target.value)} />
+
           <label>Docs URL</label>
           <input
             placeholder="https://example.com/docs or OpenAPI URL"
@@ -182,10 +207,26 @@ export default function App() {
             {!result ? <p className="muted">Run the workflow to generate a plan.</p> : <>
               <p className="muted">Runtime: {result.agentRuntime.mode}. Model: {result.model.provider} / {result.model.model}</p>
               <p className="muted">Docs: {result.docsSourceUrl ?? "pasted text"}{result.docsCharacters ? ` (${result.docsCharacters.toLocaleString()} chars)` : ""}</p>
+              {result.businessContext?.customerId && <p className="muted">Customer data: {result.businessContext.customerId} ({result.customerChunksIndexed?.toLocaleString() ?? 0} chunks, {result.businessContext.signals.length} signals)</p>}
               <h3>{result.plan.title}</h3>
               <p>{result.plan.story}</p>
               <div className="chips">{result.plan.screens.map((s) => <span key={s}>{s}</span>)}</div>
             </>}
+          </section>
+
+          <section className="card">
+            <h2>Business context</h2>
+            {!result?.businessContext?.signals.length ? <p className="muted">Customer-specific evidence will appear here when a sample data set is provided.</p> : <div className="agent-list">
+              {result.businessContext.signals.map((signal) => (
+                <article key={signal.id} className="agent-row">
+                  <div>
+                    <strong>{signal.title}</strong>
+                    <p>{signal.summary}</p>
+                    <small>{[signal.department, signal.metric].filter(Boolean).join(" / ")}</small>
+                  </div>
+                </article>
+              ))}
+            </div>}
           </section>
 
           <section className="card">

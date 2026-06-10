@@ -11,7 +11,7 @@ This scaffold includes:
 
 ## Intended hackathon story
 
-Elastic is the source-grounded retrieval layer. It indexes API docs, retrieves relevant capabilities and evidence snippets, and powers claim validation.
+Elastic is the source-grounded retrieval layer. It indexes API docs and customer business data, retrieves relevant capabilities, operational pain points, and evidence snippets, and powers claim validation.
 
 GitLab is the packaging layer. It stores generated demo repos/MRs for review by sales engineers, solution architects, or technical buyers.
 
@@ -61,6 +61,7 @@ PROOFPILOT_ELASTIC_PROVIDER=memory
 ELASTIC_URL=http://localhost:9200
 ELASTIC_API_KEY=
 ELASTIC_INDEX=proofpilot-doc-chunks
+ELASTIC_BUSINESS_INDEX=proofpilot-business-chunks
 GITLAB_TOKEN=
 GITLAB_BASE_URL=https://gitlab.com
 GITLAB_NAMESPACE_ID=
@@ -144,7 +145,20 @@ PROOFPILOT_ELASTIC_PROVIDER=elastic
 ELASTIC_URL=http://localhost:9200
 ELASTIC_API_KEY=your-api-key
 ELASTIC_INDEX=proofpilot-doc-chunks
+ELASTIC_BUSINESS_INDEX=proofpilot-business-chunks
 ```
+
+ProofPilot can also index proprietary customer context from `sample-data/<customerId>`. For example, pass:
+
+```json
+{
+  "customerId": "aerocore-leasing",
+  "customerPersona": "Sarah Jenkins, Billing & Finance Administrator",
+  "targetSystem": "Salesforce Lease_Agreement__c custom object"
+}
+```
+
+The workflow adds a Business Context Agent that loads customer documents, indexes them into `ELASTIC_BUSINESS_INDEX`, extracts evidence-linked business signals, and gives the planner both API capabilities and customer-specific operational context. In mock mode this uses the sample-data folder and the in-memory adapter; with `PROOFPILOT_ELASTIC_PROVIDER=elastic`, API docs and customer data are persisted into separate Elasticsearch indices.
 
 Mock GitLab export writes the generated demo package to `.generated/demos/<repo-name>` and returns that local path in the workflow result. To create a real GitLab project and commit the generated files:
 
