@@ -64,14 +64,10 @@ describe("runProofPilotWorkflow", () => {
     const result = await runProofPilotWorkflow({
       apiName: "Acme Document Extraction API",
       docsText,
-      industry: "Industrial equipment leasing",
-      audience: "sales",
-      goal: "Show AeroCore how document extraction can reduce manual billing reconciliation and prepare reviewed lease data for Salesforce.",
       preferredStack: "React + Node",
       liveApiAllowed: false,
       customerId: "aerocore-leasing",
-      customerPersona: "Sarah Jenkins, Billing & Finance Administrator",
-      targetSystem: "Salesforce Lease_Agreement__c custom object"
+      context: "Show AeroCore how document extraction can reduce manual billing reconciliation and prepare reviewed lease data for Salesforce Lease_Agreement__c. Persona: Sarah Jenkins, Billing & Finance Administrator."
     });
 
     expect(result.businessContext.customerId).toBe("aerocore-leasing");

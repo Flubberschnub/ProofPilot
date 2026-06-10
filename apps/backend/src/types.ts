@@ -8,6 +8,7 @@ export type DemoRequest = {
   industry: string;
   audience: Audience;
   goal: string;
+  context?: string;
   preferredStack?: string;
   liveApiAllowed: boolean;
   customerId?: string;
@@ -15,9 +16,13 @@ export type DemoRequest = {
   targetSystem?: string;
 };
 
-export type WorkflowRequest = Omit<DemoRequest, "docsText"> & {
+export type WorkflowRequest = Omit<DemoRequest, "docsText" | "industry" | "audience" | "goal" | "liveApiAllowed"> & {
   docsText?: string;
   docsUrl?: string;
+  industry?: string;
+  audience?: Audience;
+  goal?: string;
+  liveApiAllowed?: boolean;
 };
 
 export type SourceChunk = {

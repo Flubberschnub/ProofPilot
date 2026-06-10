@@ -55,6 +55,7 @@ export const intakeAgent: ProofPilotAgent<WorkflowRequest, IntakeOutput> = {
         docsText: resolved.docsText.trim(),
         industry: resolved.industry.trim(),
         goal: resolved.goal.trim(),
+        context: resolved.context?.trim() || undefined,
         preferredStack: resolved.preferredStack?.trim(),
         customerId: resolved.customerId?.trim() || undefined,
         customerPersona: resolved.customerPersona?.trim() || undefined,

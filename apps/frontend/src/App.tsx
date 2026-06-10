@@ -90,14 +90,9 @@ Customers often use Acme to reduce manual review effort, but exact time savings 
 
 export default function App() {
   const [apiName, setApiName] = useState("Acme Document Extraction API");
-  const [docsUrl, setDocsUrl] = useState("");
-  const [docsText, setDocsText] = useState(sampleDocs);
-  const [goal, setGoal] = useState("Show how AeroCore could reduce billing and dispatch reconciliation work by extracting fields from invoices, repair logs, pilot records, and lease documents, then exporting reviewed data to its integration layer.");
-  const [industry, setIndustry] = useState("Industrial equipment leasing");
-  const [audience, setAudience] = useState("executive");
+  const [apiDocs, setApiDocs] = useState(sampleDocs);
   const [customerId, setCustomerId] = useState("aerocore-leasing");
-  const [customerPersona, setCustomerPersona] = useState("Sarah Jenkins, Billing & Finance Administrator");
-  const [targetSystem, setTargetSystem] = useState("Salesforce Lease_Agreement__c custom object");
+  const [context, setContext] = useState("Use AeroCore's billing, dispatch, pilot, maintenance, and support records to generate a bespoke demo. Focus on manual billing reconciliation, invoice/repair-log extraction, lease data review, and Salesforce Lease_Agreement__c handoff for Sarah Jenkins and the finance team.");
   const [result, setResult] = useState<WorkflowResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,21 +101,19 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
+      const trimmedDocs = apiDocs.trim();
+      const docsIsUrl = /^https?:\/\//i.test(trimmedDocs);
       const response = await fetch(apiUrl("/api/workflow/run"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiName,
-          docsUrl: docsUrl.trim() || undefined,
-          docsText: docsText.trim() || undefined,
-          industry,
-          audience,
-          goal,
+          docsUrl: docsIsUrl ? trimmedDocs : undefined,
+          docsText: docsIsUrl ? undefined : trimmedDocs || undefined,
+          context: context.trim() || undefined,
           preferredStack: "React + Node",
           liveApiAllowed: false,
-          customerId: customerId.trim() || undefined,
-          customerPersona: customerPersona.trim() || undefined,
-          targetSystem: targetSystem.trim() || undefined
+          customerId: customerId.trim() || undefined
         })
       });
       const responseText = await response.text();
@@ -157,45 +150,26 @@ export default function App() {
       <section className="grid">
         <div className="card">
           <h2>1. Demo brief</h2>
-          <label>API name</label>
+          <label>API</label>
           <input value={apiName} onChange={(e) => setApiName(e.target.value)} />
 
-          <label>Industry</label>
-          <input value={industry} onChange={(e) => setIndustry(e.target.value)} />
-
-          <label>Audience</label>
-          <select value={audience} onChange={(e) => setAudience(e.target.value)}>
-            <option value="executive">Executive</option>
-            <option value="technical">Technical</option>
-            <option value="sales">Sales</option>
-            <option value="developer">Developer</option>
-          </select>
-
-          <label>Goal</label>
-          <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={5} />
-
-          <label>Customer data set</label>
+          <label>Data</label>
           <input
             placeholder="sample-data folder name, e.g. aerocore-leasing"
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
           />
 
-          <label>Customer persona</label>
-          <input value={customerPersona} onChange={(e) => setCustomerPersona(e.target.value)} />
-
-          <label>Target system</label>
-          <input value={targetSystem} onChange={(e) => setTargetSystem(e.target.value)} />
-
-          <label>Docs URL</label>
-          <input
-            placeholder="https://example.com/docs or OpenAPI URL"
-            value={docsUrl}
-            onChange={(e) => setDocsUrl(e.target.value)}
+          <label>API docs</label>
+          <textarea
+            placeholder="Paste docs, OpenAPI, Markdown, JSON, or a docs URL"
+            value={apiDocs}
+            onChange={(e) => setApiDocs(e.target.value)}
+            rows={12}
           />
 
-          <label>API docs fallback</label>
-          <textarea value={docsText} onChange={(e) => setDocsText(e.target.value)} rows={11} />
+          <label>Context</label>
+          <textarea value={context} onChange={(e) => setContext(e.target.value)} rows={7} />
 
           <button onClick={runWorkflow} disabled={loading}>{loading ? "Generating..." : "Generate grounded demo"}</button>
           {error && <p className="error">{error}</p>}

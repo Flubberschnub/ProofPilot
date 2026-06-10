@@ -22,6 +22,7 @@ export async function extractCapabilities(input: DemoRequest, chunks: SourceChun
       `Target industry: ${input.industry}.`,
       `Target audience: ${input.audience}.`,
       `Demo goal: ${input.goal}`,
+      `Additional context: ${input.context ?? "none"}`,
       "Use only the provided source chunks. Include evidenceChunkIds that support each capability.",
       "",
       "Source chunks:",
@@ -61,6 +62,7 @@ export async function extractBusinessSignals(
       `Extract business signals for ${input.customerId ?? "the target customer"} that could shape a bespoke API demo.`,
       `API: ${input.apiName}`,
       `Goal: ${input.goal}`,
+      `Additional context: ${input.context ?? "none"}`,
       `Target persona: ${input.customerPersona ?? "not specified"}`,
       `Target system: ${input.targetSystem ?? "not specified"}`,
       "",
@@ -104,6 +106,7 @@ export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapa
       `Industry: ${input.industry}`,
       `Audience: ${input.audience}`,
       `Goal: ${input.goal}`,
+      `Additional context: ${input.context ?? "none"}`,
       `Preferred stack: ${input.preferredStack ?? "not specified"}`,
       "",
       "Capabilities:",
@@ -229,6 +232,7 @@ function heuristicExtractCapabilities(chunks: SourceChunk[]): ApiCapability[] {
 function heuristicBusinessSignals(input: DemoRequest, chunks: SourceChunk[], capabilities: ApiCapability[]): BusinessSignal[] {
   const terms = [
     input.goal,
+    input.context ?? "",
     input.customerPersona ?? "",
     input.targetSystem ?? "",
     capabilities.flatMap((capability) => [...capability.businessUseCases, capability.name]).join(" ")
@@ -264,14 +268,15 @@ function heuristicDemoPlan(input: DemoRequest, capabilities: ApiCapability[], bu
       ? "ClaimFlow: API-Powered Claims Intake Demo"
       : `${input.apiName} Bespoke API Demo`;
 
-  const targetWorkflow = primarySignal?.title ?? input.goal;
-  const targetSystem = input.targetSystem ?? "the customer's integration layer";
+  const targetWorkflow = primarySignal?.title ?? input.context ?? input.goal;
+  const targetSystem = input.targetSystem ?? inferTargetSystem(input.context) ?? "the customer's integration layer";
+  const persona = input.customerPersona ?? inferPersona(input.context) ?? "the target user";
 
   return {
     id: "plan_default",
     title,
     story: businessContext?.customerId
-      ? `${businessContext.customerId} evaluates ${input.apiName} against real operational evidence: ${targetWorkflow}. The demo follows ${input.customerPersona ?? "the target user"} from source document intake through reviewed output for ${targetSystem}.`
+      ? `${businessContext.customerId} evaluates ${input.apiName} against real operational evidence: ${targetWorkflow}. The demo follows ${persona} from source document intake through reviewed output for ${targetSystem}.`
       : `A ${input.industry} team evaluates ${input.apiName} by walking through a realistic workflow: ${input.goal}`,
     screens: [
       businessContext?.customerId ? "Customer pain and evidence brief" : "Business workflow overview",
@@ -398,4 +403,23 @@ function summarizeSignal(chunk: SourceChunk) {
 
 function extractMetric(text: string) {
   return text.match(/(\$[0-9,]+(?:\.\d+)?|[0-9]+(?:\.[0-9]+)?%|[0-9]+(?:\+)?\s+(?:hours?|days?|minutes?|monthly active leases))/i)?.[0];
+}
+
+function inferTargetSystem(context?: string) {
+  if (!context) return undefined;
+  const salesforce = context.match(/salesforce[^\n,.]*/i)?.[0];
+  if (salesforce) return salesforce;
+  const cargoWise = context.match(/cargowise[^\n,.]*/i)?.[0];
+  if (cargoWise) return cargoWise;
+  return undefined;
+}
+
+function inferPersona(context?: string) {
+  if (!context) return undefined;
+  const namedPersona = context.match(/(?:persona|user|buyer|for):\s*([^\n.]+)/i)?.[1]?.trim();
+  if (namedPersona) return namedPersona;
+  if (/billing|invoice|finance/i.test(context)) return "a billing or finance operator";
+  if (/dispatch|pilot|field/i.test(context)) return "a dispatch or field operations user";
+  if (/support|ticket|rma/i.test(context)) return "a support operations user";
+  return undefined;
 }

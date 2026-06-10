@@ -10,20 +10,45 @@ export async function resolveWorkflowDocs(input: WorkflowRequest): Promise<DemoR
       throw new Error(`Could not extract enough documentation text from ${input.docsUrl}. Try a more direct docs, OpenAPI, Markdown, or HTML URL.`);
     }
 
-    return {
-      ...input,
-      apiName: input.apiName.trim(),
-      docsText: fetched.text,
-      docsSourceUrl: fetched.url
-    };
+    return normalizeResolvedRequest(input, fetched.text, fetched.url);
   }
 
   const pastedDocs = input.docsText?.trim();
   if (pastedDocs && pastedDocs.length >= 50) {
-    return { ...input, docsText: pastedDocs };
+    return normalizeResolvedRequest(input, pastedDocs);
   }
 
   throw new Error("Provide either API docs text or a URL to the API documentation.");
+}
+
+function normalizeResolvedRequest(input: WorkflowRequest, docsText: string, docsSourceUrl?: string): DemoRequest {
+  const context = input.context?.trim();
+  const fallbackGoal = context || "Generate a source-grounded bespoke API demo from the provided API documentation and customer data.";
+
+  return {
+    ...input,
+    apiName: input.apiName.trim(),
+    docsText,
+    docsSourceUrl,
+    industry: input.industry?.trim() || inferIndustry(input.customerId, context),
+    audience: input.audience ?? "sales",
+    goal: input.goal?.trim() || fallbackGoal,
+    context,
+    preferredStack: input.preferredStack?.trim(),
+    liveApiAllowed: input.liveApiAllowed ?? false,
+    customerId: input.customerId?.trim() || undefined,
+    customerPersona: input.customerPersona?.trim() || undefined,
+    targetSystem: input.targetSystem?.trim() || undefined
+  };
+}
+
+function inferIndustry(customerId?: string, context?: string) {
+  const text = `${customerId ?? ""} ${context ?? ""}`.toLowerCase();
+  if (text.includes("aerocore") || text.includes("leasing") || text.includes("drone")) return "Industrial equipment leasing";
+  if (text.includes("insurance") || text.includes("claim")) return "Insurance";
+  if (text.includes("health") || text.includes("patient")) return "Healthcare";
+  if (text.includes("bank") || text.includes("loan")) return "Financial services";
+  return "Customer operations";
 }
 
 async function fetchDocsFromUrl(docsUrl: string) {
