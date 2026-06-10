@@ -15,6 +15,8 @@ Elastic is the source-grounded retrieval layer. It indexes API docs and customer
 
 GitLab is the packaging layer. It stores generated demo repos/MRs for review by sales engineers, solution architects, or technical buyers.
 
+For the next-step integration plan covering Elastic Agent Builder, MCP, Google ADK, and GCP deployment, see [docs/elastic-adk-gcp-plan.md](docs/elastic-adk-gcp-plan.md).
+
 ## Quick start
 
 Run backend:
