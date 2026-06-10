@@ -1,0 +1,45 @@
+{
+  "device_id": "HW-DRN-10029",
+  "serial_number": "SM4-900821-X",
+  "active_booking_id": "BK-99102",
+  "active_pilot_id": "PL-0098",
+  "flight_status": "in_air",
+  "current_flight_minutes": 27.5,
+  "telemetry_stream": {
+    "epoch_timestamp_ms": 1781267400000,
+    "gps": {
+      "latitude": 41.683510,
+      "longitude": -93.629150,
+      "altitude_meters": 82.4,
+      "satellites_connected": 17
+    },
+    "power": {
+      "battery_percent": 34,
+      "voltage_cell_average": 3.42,
+      "battery_temp_celsius": 48.5,
+      "voltage_warnings": []
+    },
+    "sensors": {
+      "camera_status": "active_recording",
+      "gimbal_pitch_degrees": -45.0,
+      "lidar_status": "disabled"
+    },
+    "diagnostics": {
+      "motor_vibration_g": 2.82,
+      "motor_temperature_celsius": 61.2,
+      "compass_calibration_index": 0.96,
+      "structural_warning": "HIGH_VIBRATION_WARN"
+    }
+  },
+  "alert_triggers": [
+    {
+      "trigger_id": "ALT-00219",
+      "severity": "WARNING",
+      "parameter": "motor_vibration_g",
+      "value_recorded": 2.82,
+      "threshold_exceeded": 2.50,
+      "message": "Elevated motor vibration detected. Inspect carbon housing and rotor mounts upon landing.",
+      "escalation_target": "AeroCore Dispatch & Maintenance Hub"
+    }
+  ]
+}

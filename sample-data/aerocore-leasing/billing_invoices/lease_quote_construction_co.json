@@ -1,0 +1,16 @@
+{
+  "quote_id": "QT-2026-00192",
+  "quote_date": "2026-05-18",
+  "valid_until": "2026-06-18",
+  "prospective_client": {
+    "company_name": "Midwest Engineering & Surveys, Inc.",
+    "contact": "David Miller"
+  },
+  "proposed_lease": {
+    "hardware_model": "DJI Matrice 300 RTK + LiDAR L4",
+    "contract_duration_months": 12,
+    "monthly_rate_usd": 4100.00,
+    "hourly_overage_rate_usd": 110.00,
+    "limit_hours_monthly": 35
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "event_type": "telemetry.alert",
+  "timestamp": "2026-06-12T09:14:05-05:00",
+  "payload": {
+    "booking_id": "BK-99102",
+    "hardware_id": "HW-DRN-10029",
+    "alert_code": "ERR-TEMP-BATT-HIGH",
+    "sensor_value": 58.5,
+    "max_threshold": 55.0,
+    "pilot_notification_sent": true
+  }
+}

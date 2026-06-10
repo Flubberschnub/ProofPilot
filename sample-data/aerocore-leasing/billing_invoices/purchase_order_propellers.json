@@ -1,0 +1,15 @@
+{
+  "purchase_order_id": "PO-2026-00981",
+  "creation_date": "2026-05-20",
+  "supplier": "AeroCore Manufacturing Hub, Shenzhen",
+  "warehouse_destination": "AeroCore Austin Depot, Austin, TX",
+  "items": [
+    {
+      "part_id": "PART-PROP-SM4",
+      "quantity": 100,
+      "unit_cost_usd": 22.00,
+      "total_cost_usd": 2200.00
+    }
+  ],
+  "status": "PENDING_APPROVAL"
+}

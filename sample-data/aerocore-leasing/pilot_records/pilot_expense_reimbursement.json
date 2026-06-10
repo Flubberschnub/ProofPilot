@@ -1,0 +1,11 @@
+{
+  "reimbursement_id": "EXP-2026-0019",
+  "pilot_id": "PL-0098",
+  "billing_period": "2026-06-01 to 2026-06-15",
+  "expenses": [
+    { "date": "2026-06-12", "type": "Travel Mileage", "amount": 42.50, "note": "Polk County site travel" },
+    { "date": "2026-06-12", "type": "FAA LAANC Filing Fee", "amount": 15.00, "note": "Airspace waiver filing" }
+  ],
+  "total_reimbursement_due": 57.50,
+  "status": "APPROVED"
+}

@@ -1,0 +1,9 @@
+{
+  "catalog_version": "2026.1",
+  "parts": [
+    { "id": "PART-PROP-SM4", "name": "SprayMaster v4 Carbon Propeller Pack", "price_usd": 45.00, "stock": 42 },
+    { "id": "PART-ARM-CF-SM4", "name": "Carbon Fiber Support Arm", "price_usd": 185.00, "stock": 14 },
+    { "id": "PART-GEAR-SM4", "name": "Retractable Landing Gear Assembly", "price_usd": 320.00, "stock": 8 },
+    { "id": "PART-MOTOR-ESC-SM4", "name": "Direct Drive Motor + ESC Combo", "price_usd": 425.00, "stock": 6 }
+  ]
+}

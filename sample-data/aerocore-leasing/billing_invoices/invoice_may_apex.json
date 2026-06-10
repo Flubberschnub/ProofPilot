@@ -1,0 +1,18 @@
+{
+  "invoice_id": "INV-2026-003910",
+  "issue_date": "2026-05-01",
+  "due_date": "2026-05-16",
+  "client_id": "CL-001928",
+  "lease_id": "LS-88392",
+  "billing_items": [
+    {
+      "description": "Base Monthly HaaS Subscription - AeroCore SprayMaster v4 Fleet Lease",
+      "rate": 3500.00,
+      "quantity": 1,
+      "total": 3500.00
+    }
+  ],
+  "tax_amount": 245.00,
+  "total_amount_due": 3745.00,
+  "status": "PAID"
+}
