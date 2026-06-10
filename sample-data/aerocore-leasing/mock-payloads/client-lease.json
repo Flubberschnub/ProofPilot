@@ -1,0 +1,51 @@
+{
+  "contract_type": "Hardware-as-a-Service Lease Agreement",
+  "lease_id": "LS-88392",
+  "agreement_date": "2026-04-15",
+  "client_info": {
+    "client_id": "CL-001928",
+    "company_name": "Apex Agriculture Solutions, LLC",
+    "duns_number": "081129843",
+    "authorized_signee": "Robert Chen",
+    "signee_title": "VP of Operations",
+    "billing_address": "802 Grain Elevator Road, Des Moines, IA 50309, USA",
+    "billing_email": "billing@apexagri.com"
+  },
+  "lease_terms": {
+    "start_date": "2026-05-01",
+    "end_date": "2027-04-30",
+    "renewal_option": "auto-renew-annual",
+    "base_monthly_rate_usd": 3500.00,
+    "billing_cycle": "monthly-prepaid",
+    "payment_method": "ACH_DIRECT"
+  },
+  "hardware_provisions": [
+    {
+      "hardware_id": "HW-DRN-10029",
+      "model_name": "AeroCore SprayMaster v4",
+      "serial_number": "SM4-900821-X",
+      "category": "drone",
+      "condition_on_delivery": "new",
+      "flight_hours_baseline": 0.0
+    },
+    {
+      "hardware_id": "HW-SEN-20381",
+      "model_name": "MultiSpectral-CropSensor Pro",
+      "serial_number": "MSCP-11029-A",
+      "category": "camera_sensor",
+      "condition_on_delivery": "new",
+      "flight_hours_baseline": 0.0
+    }
+  ],
+  "usage_thresholds": {
+    "flight_hour_limit_monthly": 40,
+    "overage_rate_hourly_usd": 85.00,
+    "billing_method": "telemetry-measured-postpaid"
+  },
+  "compliance_requirements": {
+    "pilot_certification_required": "FAA Part 107",
+    "maximum_altitude_meters": 121.92,
+    "restricted_zones": "Class B/C/D airspace without active LAANC",
+    "data_security_standard": "SOC2-Type-II"
+  }
+}

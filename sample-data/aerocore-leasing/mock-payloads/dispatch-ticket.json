@@ -1,0 +1,33 @@
+{
+  "booking_id": "BK-99102",
+  "lease_id": "LS-88392",
+  "client_name": "Apex Agriculture Solutions, LLC",
+  "assigned_crew": {
+    "pilot_id": "PL-0098",
+    "pilot_name": "Marcus Vance",
+    "pilot_faa_license": "Part-107-Remote-Pilot",
+    "license_number": "FAA-4491029-EXP2028",
+    "crew_contact_phone": "+1-515-555-0192"
+  },
+  "schedule": {
+    "requested_date": "2026-05-28",
+    "scheduled_start_time": "2026-05-28T08:00:00-05:00",
+    "scheduled_end_time": "2026-05-28T13:00:00-05:00",
+    "duration_hours": 5.0
+  },
+  "site_details": {
+    "site_name": "Polk County Corn Plot - Sector 4",
+    "gps_latitude": 41.683419,
+    "gps_longitude": -93.629103,
+    "address_reference": "Intersection of NE 54th St and NE 70th Ave, Ankeny, IA 50021",
+    "target_area_acres": 120
+  },
+  "flight_clearance": {
+    "faa_grid_classification": "Class E (Uncontrolled)",
+    "laanc_authorization_required": true,
+    "faa_laanc_code": "LAANC-AUTH-992183-DSM",
+    "maximum_permitted_altitude_feet": 400
+  },
+  "mission_type": "Multi-Spectral Crop Health Analysis",
+  "status": "scheduled"
+}

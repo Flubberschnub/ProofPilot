@@ -1,0 +1,15 @@
+{
+  "invoice_id": "INV-2026-004921",
+  "client_id": "CL-001928",
+  "lease_id": "LS-88392",
+  "repair_ref": "TK-REPAIR-88219",
+  "items": [
+    { "part_id": "PART-PROP-SM4", "qty": 2, "unit": 45.00, "total": 90.00 },
+    { "part_id": "PART-ARM-CF-SM4", "qty": 1, "unit": 185.00, "total": 185.00 },
+    { "part_id": "PART-GEAR-SM4", "qty": 1, "unit": 320.00, "total": 320.00 },
+    { "part_id": "LABOR-ENG-SR", "qty": 3.5, "unit": 120.00, "total": 420.00 }
+  ],
+  "tax": 71.05,
+  "total": 1086.05,
+  "status": "UNPAID"
+}

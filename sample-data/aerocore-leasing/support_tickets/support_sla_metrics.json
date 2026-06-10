@@ -1,0 +1,11 @@
+{
+  "sla_tier_standards": {
+    "gold": { "response_time_minutes": 15, "resolution_hours": 4 },
+    "silver": { "response_time_minutes": 60, "resolution_hours": 12 },
+    "standard": { "response_time_minutes": 240, "resolution_hours": 48 }
+  },
+  "metrics_q1_2026": {
+    "average_first_response_time_minutes": 42.5,
+    "sla_compliance_rate": 0.94
+  }
+}

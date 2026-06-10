@@ -1,0 +1,55 @@
+{
+  "invoice_number": "INV-2026-004921",
+  "lease_id": "LS-88392",
+  "client_id": "CL-001928",
+  "company_name": "Apex Agriculture Solutions, LLC",
+  "billing_date": "2026-06-14",
+  "payment_due_date": "2026-06-29",
+  "incident_reference": {
+    "repair_ticket_id": "TK-REPAIR-88219",
+    "hardware_id": "HW-DRN-10029",
+    "serial_number": "SM4-900821-X",
+    "description": "Rotor housing and landing gear replacement following heavy landing at Sector 4."
+  },
+  "line_items": [
+    {
+      "item_id": "PART-PROP-SM4",
+      "description": "AeroCore SprayMaster v4 Propeller Pack (4 blades)",
+      "unit_price_usd": 45.00,
+      "quantity": 2,
+      "subtotal_usd": 90.00
+    },
+    {
+      "item_id": "PART-ARM-CF-SM4",
+      "description": "Carbon Fiber Support Arm Replacement - Port Front",
+      "unit_price_usd": 185.00,
+      "quantity": 1,
+      "subtotal_usd": 185.00
+    },
+    {
+      "item_id": "PART-GEAR-SM4",
+      "description": "Retractable Carbon Landing Gear assembly",
+      "unit_price_usd": 320.00,
+      "quantity": 1,
+      "subtotal_usd": 320.00
+    },
+    {
+      "item_id": "LABOR-ENG-SR",
+      "description": "Senior Field Hardware Engineering Labor (Hours)",
+      "unit_price_usd": 120.00,
+      "quantity": 3.5,
+      "subtotal_usd": 420.00
+    }
+  ],
+  "totals": {
+    "subtotal_amount_usd": 1015.00,
+    "tax_rate": 0.07,
+    "tax_amount_usd": 71.05,
+    "total_amount_due_usd": 1086.05
+  },
+  "payment_terms": {
+    "auto_debit_scheduled": true,
+    "debit_date": "2026-06-29",
+    "billing_method": "ACH_DIRECT_ROUTING"
+  }
+}
