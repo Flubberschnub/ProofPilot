@@ -171,13 +171,20 @@ function slugify(value: string) {
 }
 
 async function getIdentityToken(audience: string): Promise<string | undefined> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 1000);
   try {
     const res = await fetch(
       `http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=${encodeURIComponent(audience)}`,
-      { headers: { "Metadata-Flavor": "Google" } }
+      { 
+        headers: { "Metadata-Flavor": "Google" },
+        signal: controller.signal
+      }
     );
     return res.ok ? await res.text() : undefined;
   } catch {
     return undefined;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
