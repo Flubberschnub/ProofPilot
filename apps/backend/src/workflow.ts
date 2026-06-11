@@ -27,7 +27,14 @@ export async function runProofPilotWorkflow(input: WorkflowRequest) {
 
   if (process.env.PROOFPILOT_AGENT_RUNTIME?.toLowerCase() === "adk") {
     const adkUrl = process.env.PROOFPILOT_ADK_AGENT_URL || "http://localhost:8081";
-    const adkToken = process.env.PROOFPILOT_ADK_AUTH_TOKEN;
+    let adkToken = process.env.PROOFPILOT_ADK_AUTH_TOKEN;
+
+    if (!adkToken && adkUrl.includes(".run.app")) {
+      const gcpToken = await getIdentityToken(adkUrl);
+      if (gcpToken) {
+        adkToken = gcpToken;
+      }
+    }
 
     const payload = {
       apiName: intake.input.apiName,
@@ -131,4 +138,16 @@ export async function runProofPilotWorkflow(input: WorkflowRequest) {
 
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+async function getIdentityToken(audience: string): Promise<string | undefined> {
+  try {
+    const res = await fetch(
+      `http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=${encodeURIComponent(audience)}`,
+      { headers: { "Metadata-Flavor": "Google" } }
+    );
+    return res.ok ? await res.text() : undefined;
+  } catch {
+    return undefined;
+  }
 }
