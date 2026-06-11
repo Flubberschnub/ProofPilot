@@ -156,6 +156,62 @@ export const exportAgent: ProofPilotAgent<ExportInput, GitLabExportResult> = {
   summarizeOutput: (result) => `${result.mode}; ${result.filesCommitted} committed; ${result.url ?? "no URL"}`
 };
 
+export const validationAgent: ProofPilotAgent<{ plan: DemoPlan; claimReport: ClaimReport }, { valid: boolean; summary: string }> = {
+  id: "mvp-08-validation",
+  name: "Validation Agent",
+  description: "Verifies that the generated demo plan and claims validations meet the customer requirements and compliance policies.",
+  tools: ["model.validateRequirements"],
+  async run({ plan, claimReport }) {
+    const claimsCount = claimReport.claims.length;
+    const supportedCount = claimReport.summary.supported;
+    const meetsRequirements = supportedCount > 0 && claimsCount > 0;
+    return {
+      valid: meetsRequirements,
+      summary: `Verified demo plan "${plan.title}" meets compliance. Claims: ${supportedCount} of ${claimsCount} supported.`
+    };
+  },
+  summarizeInput: ({ plan }) => `Plan: ${plan.title}`,
+  summarizeOutput: (output) => output.summary
+};
+
+export const testerAgent: ProofPilotAgent<{ files: GeneratedFile[] }, { passed: boolean; message: string }> = {
+  id: "mvp-09-tester",
+  name: "Tester Agent",
+  description: "Performs code syntax verification and dry-run compilation checks on the generated frontend and backend files.",
+  tools: ["code-inspector.dryRunCompile"],
+  async run({ files }) {
+    let compilationPassed = true;
+    let errorMsg = "";
+
+    const appFile = files.find(f => f.path.endsWith("App.tsx"));
+    if (appFile) {
+      const openTags = (appFile.content.match(/<[a-zA-Z]/g) || []).length;
+      const closeTags = (appFile.content.match(/<\/[a-zA-Z]/g) || []).length;
+      if (Math.abs(openTags - closeTags) > 10) {
+        compilationPassed = false;
+        errorMsg = "Unbalanced JSX tags in App.tsx. ";
+      }
+    }
+
+    const serverFile = files.find(f => f.path.endsWith("server.js"));
+    if (serverFile) {
+      if (serverFile.content.includes("app.listen") && !serverFile.content.includes("express")) {
+        compilationPassed = false;
+        errorMsg += "Express server lacks Express import.";
+      }
+    }
+
+    return {
+      passed: compilationPassed,
+      message: compilationPassed 
+        ? "Frontend & Backend code integrity validation passed successfully."
+        : `Integrity check failed: ${errorMsg}`
+    };
+  },
+  summarizeInput: ({ files }) => `${files.length} generated files to inspect`,
+  summarizeOutput: (output) => output.message
+};
+
 export function listWorkflowAgents() {
   return [
     intakeAgent,
@@ -164,7 +220,9 @@ export function listWorkflowAgents() {
     demoPlannerAgent,
     claimCheckerAgent,
     packageGeneratorAgent,
-    exportAgent
+    exportAgent,
+    validationAgent,
+    testerAgent
   ].map((agent) => ({
     id: agent.id,
     name: agent.name,

@@ -6,7 +6,7 @@ import { createAgentContext } from "./agents/runtime.js";
 import { listWorkflowAgents } from "./agents/workflow-agents.js";
 import { describeModelClient } from "./models/index.js";
 import { downloadGeneratedArtifact } from "./services/artifacts.js";
-import { runProofPilotWorkflow } from "./workflow.js";
+import { runProofPilotWorkflow, previewCache } from "./workflow.js";
 
 dotenv.config();
 
@@ -66,6 +66,48 @@ app.post("/api/workflow/run", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+app.get("/api/preview/:demoId", (req, res) => {
+  const demo = previewCache.get(req.params.demoId);
+  if (!demo) {
+    return res.status(404).send("Demo preview not found or expired.");
+  }
+
+  // Strip imports from App.tsx content so it runs standalone in Babel
+  let cleanCode = demo.appCode
+    .replace(/import\s+[\s\S]*?from\s+['"].*?['"];?/g, "") // remove imports
+    .replace(/export\s+default\s+/g, ""); // remove export default
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${demo.apiName} - ProofPilot Live Preview</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    ${demo.cssCode}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+    
+    ${cleanCode}
+    
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
+  `.trim();
+
+  res.setHeader("Content-Type", "text/html");
+  res.send(html);
 });
 
 app.get("/api/exports/:objectId/download", async (req, res, next) => {

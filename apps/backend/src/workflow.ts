@@ -7,8 +7,16 @@ import {
   exportAgent,
   intakeAgent,
   packageGeneratorAgent,
-  sourceCapabilityAgent
+  sourceCapabilityAgent,
+  validationAgent,
+  testerAgent
 } from "./agents/workflow-agents.js";
+
+export const previewCache = new Map<string, {
+  apiName: string;
+  appCode: string;
+  cssCode: string;
+}>();
 import { createAgentContext, runAgent } from "./agents/runtime.js";
 import { describeModelClient } from "./models/index.js";
 
@@ -111,6 +119,26 @@ export async function runProofPilotWorkflow(input: WorkflowRequest) {
     claimReport
   }, agentContext);
 
+  const validation = await runAgent(validationAgent, {
+    plan,
+    claimReport
+  }, agentContext);
+
+  const tester = await runAgent(testerAgent, {
+    files: generatedPackage.files
+  }, agentContext);
+
+  const previewId = `${slugify(plan.title)}-${nanoid(4)}`;
+  const appFile = generatedPackage.files.find(f => f.path.endsWith("App.tsx"));
+  const cssFile = generatedPackage.files.find(f => f.path.endsWith("style.css"));
+  if (appFile && cssFile) {
+    previewCache.set(previewId, {
+      apiName: plan.title,
+      appCode: appFile.content,
+      cssCode: cssFile.content
+    });
+  }
+
   const gitlab = await runAgent(exportAgent, {
     repoName: `${slugify(plan.title)}-demo`,
     files: generatedPackage.files
@@ -132,7 +160,9 @@ export async function runProofPilotWorkflow(input: WorkflowRequest) {
     claimReport,
     files: generatedPackage.files,
     packageCheck: generatedPackage.packageCheck,
-    gitlab
+    gitlab,
+    validationPassed: validation.valid && tester.passed,
+    previewUrl: validation.valid && tester.passed ? `/api/preview/${previewId}` : null
   };
 }
 
