@@ -74,9 +74,10 @@ app.get("/api/preview/:demoId", (req, res) => {
     return res.status(404).send("Demo preview not found or expired.");
   }
 
-  // Strip imports from App.tsx content so it runs standalone in Babel
+  // Strip all imports from App.tsx so it runs standalone in the browser
   let cleanCode = demo.appCode
-    .replace(/import\s+[\s\S]*?from\s+['"].*?['"];?/g, "") // remove imports
+    .replace(/import\s+[\s\S]*?from\s+['"].*?['"];?/g, "") // remove imports with 'from'
+    .replace(/import\s+['"].*?['"];?/g, "") // remove bare imports
     .replace(/export\s+default\s+/g, ""); // remove export default
 
   const html = `
@@ -94,7 +95,7 @@ app.get("/api/preview/:demoId", (req, res) => {
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/babel">
+  <script type="text/babel" data-presets="react,typescript">
     const { useState, useEffect, useMemo } = React;
     
     ${cleanCode}
