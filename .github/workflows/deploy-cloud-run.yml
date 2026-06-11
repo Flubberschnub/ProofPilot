@@ -82,6 +82,7 @@ jobs:
           gcloud run deploy "proofpilot-adk-agent" \
             --image "${ADK_IMAGE}" \
             --region "${REGION}" \
+            --service-account "${BACKEND_RUNTIME_SERVICE_ACCOUNT}" \
             --no-allow-unauthenticated \
             --set-env-vars "MOCK_MODE=false,PROOFPILOT_MODEL_PROVIDER=vertex,VERTEX_PROJECT_ID=${PROJECT_ID},VERTEX_LOCATION=${VERTEX_LOCATION},VERTEX_MODEL=${VERTEX_MODEL}"
 
