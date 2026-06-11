@@ -380,7 +380,6 @@ export default function App() {
                 <label>Target Audience</label>
                 <select value={audience} onChange={(e) => setAudience(e.target.value)}>
                   <option value="executive">Executive</option>
-                  <option value="technical">Technical</option>
                   <option value="sales">Sales</option>
                   <option value="developer">Developer</option>
                 </select>
