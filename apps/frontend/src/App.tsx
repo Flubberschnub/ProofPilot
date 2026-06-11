@@ -378,7 +378,12 @@ export default function App() {
             <div className="advanced-fields">
               <div className="form-group">
                 <label>Target Audience</label>
-                <input value={audience} onChange={(e) => setAudience(e.target.value)} />
+                <select value={audience} onChange={(e) => setAudience(e.target.value)}>
+                  <option value="executive">Executive</option>
+                  <option value="technical">Technical</option>
+                  <option value="sales">Sales</option>
+                  <option value="developer">Developer</option>
+                </select>
               </div>
               <div className="form-group">
                 <label>Industry</label>
@@ -387,10 +392,6 @@ export default function App() {
               <div className="form-group">
                 <label>Target Persona</label>
                 <input value={customerPersona} onChange={(e) => setCustomerPersona(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Target System</label>
-                <input value={targetSystem} onChange={(e) => setTargetSystem(e.target.value)} />
               </div>
               <div className="form-group">
                 <label>Preferred Stack</label>
