@@ -51,14 +51,14 @@ PROOFPILOT_AGENT_RUNTIME=bespoke
 PROOFPILOT_LOCAL_EXPORT_DIR=../../.generated/demos
 PROOFPILOT_EXPORT_BUCKET=
 PROOFPILOT_MODEL_PROVIDER=mock
-PROOFPILOT_MODEL=gemini-1.5-flash
+PROOFPILOT_MODEL=gemini-2.0-flash
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-2.0-flash
 VERTEX_PROJECT_ID=
 VERTEX_LOCATION=global
 VERTEX_ACCESS_TOKEN=
 VERTEX_USE_METADATA_TOKEN=true
-VERTEX_MODEL=gemini-1.5-flash
+VERTEX_MODEL=gemini-2.0-flash
 PROOFPILOT_ELASTIC_PROVIDER=memory
 ELASTIC_URL=http://localhost:9200
 ELASTIC_API_KEY=
@@ -116,7 +116,7 @@ Run with the Gemini API:
 MOCK_MODE=false
 PROOFPILOT_MODEL_PROVIDER=gemini
 GEMINI_API_KEY=your-api-key
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
 Run with Vertex AI:
@@ -127,7 +127,7 @@ PROOFPILOT_MODEL_PROVIDER=vertex
 VERTEX_PROJECT_ID=your-gcp-project
 VERTEX_LOCATION=global
 VERTEX_ACCESS_TOKEN="$(gcloud auth print-access-token)" # local only; Cloud Run uses metadata tokens
-VERTEX_MODEL=gemini-1.5-flash
+VERTEX_MODEL=gemini-2.0-flash
 ```
 
 The current provider is visible at `GET /api/models/current` and is included in every workflow result under `model`.
@@ -305,7 +305,7 @@ BACKEND_SERVICE=proofpilot-backend
 FRONTEND_SERVICE=proofpilot-frontend
 BACKEND_RUNTIME_SERVICE_ACCOUNT=proofpilot-backend@PROJECT_ID.iam.gserviceaccount.com
 FRONTEND_RUNTIME_SERVICE_ACCOUNT=proofpilot-frontend@PROJECT_ID.iam.gserviceaccount.com
-VERTEX_MODEL=gemini-1.5-flash
+VERTEX_MODEL=gemini-2.0-flash
 ```
 
 With the `gh` CLI:
@@ -322,7 +322,7 @@ gh variable set BACKEND_SERVICE --body "proofpilot-backend"
 gh variable set FRONTEND_SERVICE --body "proofpilot-frontend"
 gh variable set BACKEND_RUNTIME_SERVICE_ACCOUNT --body "proofpilot-backend@$PROJECT_ID.iam.gserviceaccount.com"
 gh variable set FRONTEND_RUNTIME_SERVICE_ACCOUNT --body "proofpilot-frontend@$PROJECT_ID.iam.gserviceaccount.com"
-gh variable set VERTEX_MODEL --body "gemini-1.5-flash"
+gh variable set VERTEX_MODEL --body "gemini-2.0-flash"
 ```
 
 After that, every push to `main` or `codex-model-interface-layer` runs the pipeline and deploys both services.

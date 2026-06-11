@@ -78,7 +78,7 @@ export function getLlmClient(config: {
   }
 
   return new Gemini({
-    model: config.modelName || "gemini-1.5-flash",
+    model: config.modelName || "gemini-2.0-flash",
     apiKey: config.apiKey,
     vertexai: config.vertexai,
     project: config.project,
