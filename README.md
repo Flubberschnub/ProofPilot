@@ -11,9 +11,11 @@ This scaffold includes:
 
 ## Intended hackathon story
 
-Elastic is the source-grounded retrieval layer. It indexes API docs, retrieves relevant capabilities and evidence snippets, and powers claim validation.
+Elastic is the source-grounded retrieval layer. It indexes API docs and customer business data, retrieves relevant capabilities, operational pain points, and evidence snippets, and powers claim validation.
 
 GitLab is the packaging layer. It stores generated demo repos/MRs for review by sales engineers, solution architects, or technical buyers.
+
+For the next-step integration plan covering Elastic Agent Builder, MCP, Google ADK, and GCP deployment, see [docs/elastic-adk-gcp-plan.md](docs/elastic-adk-gcp-plan.md).
 
 ## Quick start
 
@@ -34,7 +36,7 @@ npm install
 VITE_API_BASE_URL=http://localhost:8080 npm run dev
 ```
 
-Open the frontend URL printed by Vite. Enter an API name, a public docs URL or pasted docs text, and a custom customer scenario. The backend defaults to mock mode and does not require real Elastic, Gemini, or GitLab credentials.
+Open the frontend URL printed by Vite. Enter the API name, a sample-data folder, API docs or docs URL, and any free-form customer context. The backend defaults to mock mode and does not require real Elastic, Gemini, or GitLab credentials.
 
 For production frontend hosting, set `API_BASE_URL` to the deployed backend URL. The frontend writes that value to `/config.js` at container startup, so the same built image can move between projects or backend services.
 
@@ -61,6 +63,7 @@ PROOFPILOT_ELASTIC_PROVIDER=memory
 ELASTIC_URL=http://localhost:9200
 ELASTIC_API_KEY=
 ELASTIC_INDEX=proofpilot-doc-chunks
+ELASTIC_BUSINESS_INDEX=proofpilot-business-chunks
 GITLAB_TOKEN=
 GITLAB_BASE_URL=https://gitlab.com
 GITLAB_NAMESPACE_ID=
@@ -144,7 +147,19 @@ PROOFPILOT_ELASTIC_PROVIDER=elastic
 ELASTIC_URL=http://localhost:9200
 ELASTIC_API_KEY=your-api-key
 ELASTIC_INDEX=proofpilot-doc-chunks
+ELASTIC_BUSINESS_INDEX=proofpilot-business-chunks
 ```
+
+ProofPilot can also index proprietary customer context from `sample-data/<customerId>`. For example, pass:
+
+```json
+{
+  "customerId": "aerocore-leasing",
+  "context": "Focus on manual billing reconciliation, repair-log extraction, lease data review, and Salesforce Lease_Agreement__c handoff for Sarah Jenkins."
+}
+```
+
+The workflow adds a Business Context Agent that loads customer documents, indexes them into `ELASTIC_BUSINESS_INDEX`, extracts evidence-linked business signals, and gives the planner both API capabilities and customer-specific operational context. The free-form `context` field can include personas, goals, target systems, constraints, or anything else the seller knows. In mock mode this uses the sample-data folder and the in-memory adapter; with `PROOFPILOT_ELASTIC_PROVIDER=elastic`, API docs and customer data are persisted into separate Elasticsearch indices.
 
 Mock GitLab export writes the generated demo package to `.generated/demos/<repo-name>` and returns that local path in the workflow result. To create a real GitLab project and commit the generated files:
 

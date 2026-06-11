@@ -41,10 +41,11 @@ describe("runProofPilotWorkflow", () => {
     expect(result.agents.map((agent) => agent.id)).toEqual([
       "mvp-01-intake",
       "mvp-02-source-capability",
-      "mvp-03-demo-planner",
-      "mvp-04-claim-checker",
-      "mvp-05-package-generator",
-      "mvp-06-export"
+      "mvp-03-business-context",
+      "mvp-04-demo-planner",
+      "mvp-05-claim-checker",
+      "mvp-06-package-generator",
+      "mvp-07-export"
     ]);
     expect(result.agents.every((agent) => agent.status === "passed")).toBe(true);
     expect(result.capabilities.length).toBeGreaterThan(0);
@@ -52,5 +53,28 @@ describe("runProofPilotWorkflow", () => {
     expect(result.gitlab.mode).toBe("mock");
     expect(result.gitlab.localPath).toContain(".generated");
     expect(result.gitlab.artifact?.mode).toBe("local");
+  });
+
+  it("uses AeroCore sample data as customer business context for bespoke planning", async () => {
+    process.env.MOCK_MODE = "true";
+    process.env.PROOFPILOT_MODEL_PROVIDER = "mock";
+    process.env.PROOFPILOT_ELASTIC_PROVIDER = "memory";
+    delete process.env.PROOFPILOT_EXPORT_BUCKET;
+
+    const result = await runProofPilotWorkflow({
+      apiName: "Acme Document Extraction API",
+      docsText,
+      preferredStack: "React + Node",
+      liveApiAllowed: false,
+      customerId: "aerocore-leasing",
+      context: "Show AeroCore how document extraction can reduce manual billing reconciliation and prepare reviewed lease data for Salesforce Lease_Agreement__c. Persona: Sarah Jenkins, Billing & Finance Administrator."
+    });
+
+    expect(result.businessContext.customerId).toBe("aerocore-leasing");
+    expect(result.customerChunksIndexed).toBeGreaterThan(0);
+    expect(result.businessContext.signals.length).toBeGreaterThan(0);
+    expect(result.plan.title).toContain("AeroCore");
+    expect(result.plan.story).toContain("aerocore-leasing");
+    expect(result.claimReport.claims.some((claim: any) => claim.text?.includes("documented workflow pain"))).toBe(true);
   });
 });

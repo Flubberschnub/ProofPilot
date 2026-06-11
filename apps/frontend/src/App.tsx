@@ -16,8 +16,14 @@ type WorkflowResult = {
     error?: string;
   }>;
   chunksIndexed: number;
+  customerChunksIndexed?: number;
   docsSourceUrl?: string;
   docsCharacters?: number;
+  businessContext?: {
+    customerId?: string;
+    chunks: Array<{ id: string; title: string }>;
+    signals: Array<{ id: string; title: string; summary: string; department?: string; metric?: string; evidenceChunkIds: string[] }>;
+  };
   capabilities: Array<{ name: string; description: string; endpoints: string[] }>;
   plan: {
     title: string;
@@ -84,11 +90,9 @@ Customers often use Acme to reduce manual review effort, but exact time savings 
 
 export default function App() {
   const [apiName, setApiName] = useState("Acme Document Extraction API");
-  const [docsUrl, setDocsUrl] = useState("");
-  const [docsText, setDocsText] = useState(sampleDocs);
-  const [goal, setGoal] = useState("Show how a regional insurance company could reduce manual claim intake work by uploading claim PDFs, extracting fields, reviewing uncertain values, and exporting approved data.");
-  const [industry, setIndustry] = useState("Insurance");
-  const [audience, setAudience] = useState("executive");
+  const [apiDocs, setApiDocs] = useState(sampleDocs);
+  const [customerId, setCustomerId] = useState("aerocore-leasing");
+  const [context, setContext] = useState("Use AeroCore's billing, dispatch, pilot, maintenance, and support records to generate a bespoke demo. Focus on manual billing reconciliation, invoice/repair-log extraction, lease data review, and Salesforce Lease_Agreement__c handoff for Sarah Jenkins and the finance team.");
   const [result, setResult] = useState<WorkflowResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,18 +101,19 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
+      const trimmedDocs = apiDocs.trim();
+      const docsIsUrl = /^https?:\/\//i.test(trimmedDocs);
       const response = await fetch(apiUrl("/api/workflow/run"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiName,
-          docsUrl: docsUrl.trim() || undefined,
-          docsText: docsText.trim() || undefined,
-          industry,
-          audience,
-          goal,
+          docsUrl: docsIsUrl ? trimmedDocs : undefined,
+          docsText: docsIsUrl ? undefined : trimmedDocs || undefined,
+          context: context.trim() || undefined,
           preferredStack: "React + Node",
-          liveApiAllowed: false
+          liveApiAllowed: false,
+          customerId: customerId.trim() || undefined
         })
       });
       const responseText = await response.text();
@@ -145,32 +150,26 @@ export default function App() {
       <section className="grid">
         <div className="card">
           <h2>1. Demo brief</h2>
-          <label>API name</label>
+          <label>API</label>
           <input value={apiName} onChange={(e) => setApiName(e.target.value)} />
 
-          <label>Industry</label>
-          <input value={industry} onChange={(e) => setIndustry(e.target.value)} />
-
-          <label>Audience</label>
-          <select value={audience} onChange={(e) => setAudience(e.target.value)}>
-            <option value="executive">Executive</option>
-            <option value="technical">Technical</option>
-            <option value="sales">Sales</option>
-            <option value="developer">Developer</option>
-          </select>
-
-          <label>Goal</label>
-          <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={5} />
-
-          <label>Docs URL</label>
+          <label>Data</label>
           <input
-            placeholder="https://example.com/docs or OpenAPI URL"
-            value={docsUrl}
-            onChange={(e) => setDocsUrl(e.target.value)}
+            placeholder="sample-data folder name, e.g. aerocore-leasing"
+            value={customerId}
+            onChange={(e) => setCustomerId(e.target.value)}
           />
 
-          <label>API docs fallback</label>
-          <textarea value={docsText} onChange={(e) => setDocsText(e.target.value)} rows={11} />
+          <label>API docs</label>
+          <textarea
+            placeholder="Paste docs, OpenAPI, Markdown, JSON, or a docs URL"
+            value={apiDocs}
+            onChange={(e) => setApiDocs(e.target.value)}
+            rows={12}
+          />
+
+          <label>Context</label>
+          <textarea value={context} onChange={(e) => setContext(e.target.value)} rows={7} />
 
           <button onClick={runWorkflow} disabled={loading}>{loading ? "Generating..." : "Generate grounded demo"}</button>
           {error && <p className="error">{error}</p>}
@@ -182,10 +181,26 @@ export default function App() {
             {!result ? <p className="muted">Run the workflow to generate a plan.</p> : <>
               <p className="muted">Runtime: {result.agentRuntime.mode}. Model: {result.model.provider} / {result.model.model}</p>
               <p className="muted">Docs: {result.docsSourceUrl ?? "pasted text"}{result.docsCharacters ? ` (${result.docsCharacters.toLocaleString()} chars)` : ""}</p>
+              {result.businessContext?.customerId && <p className="muted">Customer data: {result.businessContext.customerId} ({result.customerChunksIndexed?.toLocaleString() ?? 0} chunks, {result.businessContext.signals.length} signals)</p>}
               <h3>{result.plan.title}</h3>
               <p>{result.plan.story}</p>
               <div className="chips">{result.plan.screens.map((s) => <span key={s}>{s}</span>)}</div>
             </>}
+          </section>
+
+          <section className="card">
+            <h2>Business context</h2>
+            {!result?.businessContext?.signals.length ? <p className="muted">Customer-specific evidence will appear here when a sample data set is provided.</p> : <div className="agent-list">
+              {result.businessContext.signals.map((signal) => (
+                <article key={signal.id} className="agent-row">
+                  <div>
+                    <strong>{signal.title}</strong>
+                    <p>{signal.summary}</p>
+                    <small>{[signal.department, signal.metric].filter(Boolean).join(" / ")}</small>
+                  </div>
+                </article>
+              ))}
+            </div>}
           </section>
 
           <section className="card">

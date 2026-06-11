@@ -1,6 +1,15 @@
-import type { ApiCapability, ClaimReport, DemoClaim, DemoPlan, DemoRequest, SourceChunk } from "../types.js";
+import type {
+  ApiCapability,
+  BusinessContext,
+  BusinessSignal,
+  ClaimReport,
+  DemoClaim,
+  DemoPlan,
+  DemoRequest,
+  SourceChunk
+} from "../types.js";
 import { getModelClient } from "../models/index.js";
-import { retrieveEvidence } from "./elastic.js";
+import { retrieveEvidenceAcross } from "./elastic.js";
 
 export async function extractCapabilities(input: DemoRequest, chunks: SourceChunk[]): Promise<ApiCapability[]> {
   const fallback = () => heuristicExtractCapabilities(chunks);
@@ -13,6 +22,7 @@ export async function extractCapabilities(input: DemoRequest, chunks: SourceChun
       `Target industry: ${input.industry}.`,
       `Target audience: ${input.audience}.`,
       `Demo goal: ${input.goal}`,
+      `Additional context: ${input.context ?? "none"}`,
       "Use only the provided source chunks. Include evidenceChunkIds that support each capability.",
       "",
       "Source chunks:",
@@ -37,8 +47,57 @@ export async function extractCapabilities(input: DemoRequest, chunks: SourceChun
   return normalizeCapabilities(response.capabilities, chunks, fallback);
 }
 
-export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapability[]): Promise<DemoPlan> {
-  const fallback = () => heuristicDemoPlan(input, capabilities);
+export async function extractBusinessSignals(
+  input: DemoRequest,
+  chunks: SourceChunk[],
+  capabilities: ApiCapability[]
+): Promise<BusinessSignal[]> {
+  if (!chunks.length) return [];
+
+  const fallback = () => heuristicBusinessSignals(input, chunks, capabilities);
+  const response = await getModelClient().generateJson<{ signals: BusinessSignal[] }>({
+    schemaName: "BusinessSignalExtraction",
+    system: agentSystemPrompt(),
+    prompt: [
+      `Extract business signals for ${input.customerId ?? "the target customer"} that could shape a bespoke API demo.`,
+      `API: ${input.apiName}`,
+      `Goal: ${input.goal}`,
+      `Additional context: ${input.context ?? "none"}`,
+      `Target persona: ${input.customerPersona ?? "not specified"}`,
+      `Target system: ${input.targetSystem ?? "not specified"}`,
+      "",
+      "API capabilities:",
+      JSON.stringify(capabilities, null, 2),
+      "",
+      "Customer chunks:",
+      JSON.stringify(chunks.map((chunk) => ({
+        id: chunk.id,
+        title: chunk.title,
+        sourcePath: chunk.metadata?.sourcePath,
+        domain: chunk.metadata?.domain,
+        text: chunk.text
+      })), null, 2),
+      "",
+      "Prefer signals with measurable pain, named workflows, integration constraints, or concrete sample records."
+    ].join("\n"),
+    schema: {
+      signals: [{
+        id: "signal_1",
+        title: "short signal title",
+        summary: "why this matters for the demo",
+        department: "business department",
+        metric: "optional measured pain or value",
+        evidenceChunkIds: ["chunk_id"]
+      }]
+    },
+    fallback: businessSignalResponseFallback(fallback)
+  });
+
+  return normalizeBusinessSignals(response.signals, chunks, fallback);
+}
+
+export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapability[], businessContext?: BusinessContext): Promise<DemoPlan> {
+  const fallback = () => heuristicDemoPlan(input, capabilities, businessContext);
   const response = await getModelClient().generateJson<DemoPlan>({
     schemaName: "DemoPlan",
     system: agentSystemPrompt(),
@@ -47,12 +106,28 @@ export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapa
       `Industry: ${input.industry}`,
       `Audience: ${input.audience}`,
       `Goal: ${input.goal}`,
+      `Additional context: ${input.context ?? "none"}`,
       `Preferred stack: ${input.preferredStack ?? "not specified"}`,
       "",
       "Capabilities:",
       JSON.stringify(capabilities, null, 2),
       "",
-      "Generate a realistic demo plan. Keep claims testable against the capabilities and documentation evidence."
+      "Customer business context:",
+      JSON.stringify({
+        customerId: businessContext?.customerId,
+        persona: input.customerPersona,
+        targetSystem: input.targetSystem,
+        signals: businessContext?.signals ?? [],
+        evidence: businessContext?.evidence.map((chunk) => ({
+          id: chunk.id,
+          title: chunk.title,
+          sourcePath: chunk.metadata?.sourcePath,
+          domain: chunk.metadata?.domain,
+          text: chunk.text
+        })) ?? []
+      }, null, 2),
+      "",
+      "Generate a realistic demo plan. Keep claims testable against the API documentation and customer business evidence."
     ].join("\n"),
     schema: {
       id: "plan_default",
@@ -72,10 +147,14 @@ export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapa
 }
 
 export async function validateClaims(sourceId: string, claims: DemoClaim[]): Promise<ClaimReport> {
+  return validateClaimsAcross([sourceId], claims);
+}
+
+export async function validateClaimsAcross(sourceIds: string[], claims: DemoClaim[]): Promise<ClaimReport> {
   const checkedClaims = [];
 
   for (const claim of claims) {
-    const evidence = await retrieveEvidence(sourceId, claim.text, 3);
+    const evidence = await retrieveEvidenceAcross(sourceIds, claim.text, 4);
     const fallback = () => heuristicClaimCheck(claim, evidence);
     const result = await getModelClient().generateJson<{ status: DemoClaim["status"]; rewrite?: string }>({
       schemaName: "ClaimValidation",
@@ -115,6 +194,10 @@ export async function validateClaims(sourceId: string, claims: DemoClaim[]): Pro
   return { claims: checkedClaims as ClaimReport["claims"], summary };
 }
 
+function businessSignalResponseFallback(fallback: () => BusinessSignal[]) {
+  return () => ({ signals: fallback() });
+}
+
 function heuristicExtractCapabilities(chunks: SourceChunk[]): ApiCapability[] {
   const endpoints = chunks.flatMap((chunk) => [...chunk.text.matchAll(/\b(GET|POST|PUT|PATCH|DELETE)\s+(\/[^\s`]+)/g)]
     .map((m) => `${m[1]} ${m[2]}`));
@@ -146,21 +229,61 @@ function heuristicExtractCapabilities(chunks: SourceChunk[]): ApiCapability[] {
   return capabilities;
 }
 
-function heuristicDemoPlan(input: DemoRequest, capabilities: ApiCapability[]): DemoPlan {
-  const title = input.industry.toLowerCase().includes("insurance")
-    ? "ClaimFlow: API-Powered Claims Intake Demo"
-    : `${input.apiName} Bespoke API Demo`;
+function heuristicBusinessSignals(input: DemoRequest, chunks: SourceChunk[], capabilities: ApiCapability[]): BusinessSignal[] {
+  const terms = [
+    input.goal,
+    input.context ?? "",
+    input.customerPersona ?? "",
+    input.targetSystem ?? "",
+    capabilities.flatMap((capability) => [...capability.businessUseCases, capability.name]).join(" ")
+  ].join(" ").toLowerCase().split(/\W+/).filter((term) => term.length > 3);
+
+  return chunks
+    .map((chunk) => {
+      const haystack = `${chunk.title} ${chunk.text} ${Object.values(chunk.metadata ?? {}).join(" ")}`.toLowerCase();
+      const score = terms.reduce((acc, term) => acc + (haystack.includes(term) ? 1 : 0), 0)
+        + (/manual|bottleneck|error|delay|overdue|support|invoice|salesforce|cargowise|waiver|rma/i.test(haystack) ? 3 : 0)
+        + (/\d+(\.\d+)?%|\$\d|hours?|days?/i.test(chunk.text) ? 2 : 0);
+      return { chunk, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6)
+    .map(({ chunk }, index) => ({
+      id: `signal_${index + 1}`,
+      title: chunk.title,
+      summary: summarizeSignal(chunk),
+      department: typeof chunk.metadata?.domain === "string" ? chunk.metadata.domain : undefined,
+      metric: extractMetric(chunk.text),
+      evidenceChunkIds: [chunk.id]
+    }));
+}
+
+function heuristicDemoPlan(input: DemoRequest, capabilities: ApiCapability[], businessContext?: BusinessContext): DemoPlan {
+  const primarySignal = businessContext?.signals[0];
+  const isAeroCore = input.customerId?.toLowerCase().includes("aerocore");
+  const title = isAeroCore
+    ? "AeroCore Field-Ops Document Intelligence Demo"
+    : input.industry.toLowerCase().includes("insurance")
+      ? "ClaimFlow: API-Powered Claims Intake Demo"
+      : `${input.apiName} Bespoke API Demo`;
+
+  const targetWorkflow = primarySignal?.title ?? input.context ?? input.goal;
+  const targetSystem = input.targetSystem ?? inferTargetSystem(input.context) ?? "the customer's integration layer";
+  const persona = input.customerPersona ?? inferPersona(input.context) ?? "the target user";
 
   return {
     id: "plan_default",
     title,
-    story: `A ${input.industry} team evaluates ${input.apiName} by walking through a realistic workflow: ${input.goal}`,
+    story: businessContext?.customerId
+      ? `${businessContext.customerId} evaluates ${input.apiName} against real operational evidence: ${targetWorkflow}. The demo follows ${persona} from source document intake through reviewed output for ${targetSystem}.`
+      : `A ${input.industry} team evaluates ${input.apiName} by walking through a realistic workflow: ${input.goal}`,
     screens: [
-      "Business workflow overview",
+      businessContext?.customerId ? "Customer pain and evidence brief" : "Business workflow overview",
       "Upload or submit sample record",
       "API response and extracted data review",
       "Human approval / correction step",
-      "Export or reporting dashboard"
+      targetSystem.includes("Salesforce") ? "Salesforce payload preview" : "Export or reporting dashboard"
     ],
     endpointsUsed: [...new Set(capabilities.flatMap((c) => c.endpoints))].slice(0, 5),
     sampleDataNeeded: ["sample business document", "mock API response", "reviewed output payload"],
@@ -174,14 +297,19 @@ function heuristicDemoPlan(input: DemoRequest, capabilities: ApiCapability[]): D
     businessValue: [
       "Lets buyers evaluate API fit in their own workflow language",
       "Reduces sales-engineering time spent handcrafting demos",
-      "Keeps demo claims grounded in product documentation"
+      "Keeps demo claims grounded in product documentation",
+      ...(primarySignal ? [`Connects the demo to customer evidence: ${primarySignal.summary}`] : [])
     ],
     claims: [
       { id: "claim_1", text: `${input.apiName} supports uploading documents or records for processing.` },
       { id: "claim_2", text: `${input.apiName} returns structured fields that can be reviewed by a human operator.` },
       { id: "claim_3", text: `${input.apiName} can export approved data to a downstream integration layer.` },
       { id: "claim_4", text: `${input.apiName} directly integrates with the customer's existing core system.` },
-      { id: "claim_5", text: `${input.apiName} can reduce manual review effort, though exact savings depend on workflow design.` }
+      { id: "claim_5", text: `${input.apiName} can reduce manual review effort, though exact savings depend on workflow design.` },
+      ...(primarySignal ? [{
+        id: "claim_6",
+        text: `${businessContext?.customerId ?? "The customer"} has a documented workflow pain related to ${primarySignal.title}.`
+      }] : [])
     ]
   };
 }
@@ -221,6 +349,22 @@ function normalizeCapabilities(capabilities: ApiCapability[] | undefined, chunks
   })).filter((capability) => capability.name && (capability.description || capability.endpoints.length || capability.evidenceChunkIds.length));
 }
 
+function normalizeBusinessSignals(signals: BusinessSignal[] | undefined, chunks: SourceChunk[], fallback: () => BusinessSignal[]) {
+  if (!Array.isArray(signals) || !signals.length) return fallback();
+
+  const chunkIds = new Set(chunks.map((chunk) => chunk.id));
+  return signals.map((signal, index) => ({
+    id: signal.id || `signal_${index + 1}`,
+    title: signal.title || `Signal ${index + 1}`,
+    summary: signal.summary || "",
+    department: signal.department,
+    metric: signal.metric,
+    evidenceChunkIds: Array.isArray(signal.evidenceChunkIds)
+      ? signal.evidenceChunkIds.filter((id) => chunkIds.has(id))
+      : []
+  })).filter((signal) => signal.title && signal.summary);
+}
+
 function normalizeDemoPlan(plan: DemoPlan | undefined, fallback: () => DemoPlan): DemoPlan {
   if (!plan || !Array.isArray(plan.screens) || !Array.isArray(plan.claims)) return fallback();
 
@@ -249,4 +393,33 @@ function normalizeClaimStatus(status: DemoClaim["status"]): NonNullable<DemoClai
 
 function agentSystemPrompt() {
   return "You are ProofPilot's source-grounded API demo planning agent. Prefer precise, testable claims over broad marketing language.";
+}
+
+function summarizeSignal(chunk: SourceChunk) {
+  const metric = extractMetric(chunk.text);
+  const firstSentence = chunk.text.replace(/^#+\s+.+$/m, "").trim().split(/(?<=[.!?])\s+/)[0]?.slice(0, 220);
+  return metric ? `${firstSentence} Evidence includes ${metric}.` : firstSentence || `Relevant customer evidence from ${chunk.title}.`;
+}
+
+function extractMetric(text: string) {
+  return text.match(/(\$[0-9,]+(?:\.\d+)?|[0-9]+(?:\.[0-9]+)?%|[0-9]+(?:\+)?\s+(?:hours?|days?|minutes?|monthly active leases))/i)?.[0];
+}
+
+function inferTargetSystem(context?: string) {
+  if (!context) return undefined;
+  const salesforce = context.match(/salesforce[^\n,.]*/i)?.[0];
+  if (salesforce) return salesforce;
+  const cargoWise = context.match(/cargowise[^\n,.]*/i)?.[0];
+  if (cargoWise) return cargoWise;
+  return undefined;
+}
+
+function inferPersona(context?: string) {
+  if (!context) return undefined;
+  const namedPersona = context.match(/(?:persona|user|buyer|for):\s*([^\n.]+)/i)?.[1]?.trim();
+  if (namedPersona) return namedPersona;
+  if (/billing|invoice|finance/i.test(context)) return "a billing or finance operator";
+  if (/dispatch|pilot|field/i.test(context)) return "a dispatch or field operations user";
+  if (/support|ticket|rma/i.test(context)) return "a support operations user";
+  return undefined;
 }

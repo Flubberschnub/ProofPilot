@@ -18,11 +18,15 @@ const requestSchema = z.object({
   apiName: z.string().min(1),
   docsText: z.string().optional(),
   docsUrl: z.string().url().optional(),
-  industry: z.string().min(1),
-  audience: z.enum(["executive", "technical", "sales", "developer"]),
-  goal: z.string().min(10),
+  industry: z.string().min(1).optional(),
+  audience: z.enum(["executive", "technical", "sales", "developer"]).optional(),
+  goal: z.string().min(10).optional(),
+  context: z.string().optional(),
   preferredStack: z.string().optional(),
-  liveApiAllowed: z.boolean().default(false)
+  liveApiAllowed: z.boolean().default(false),
+  customerId: z.string().optional(),
+  customerPersona: z.string().optional(),
+  targetSystem: z.string().optional()
 }).refine((input) => Boolean(input.docsUrl || (input.docsText && input.docsText.trim().length >= 50)), {
   message: "Provide either a docs URL or at least 50 characters of pasted docs text.",
   path: ["docsUrl"]

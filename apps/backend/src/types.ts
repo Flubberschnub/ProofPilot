@@ -8,13 +8,21 @@ export type DemoRequest = {
   industry: string;
   audience: Audience;
   goal: string;
+  context?: string;
   preferredStack?: string;
   liveApiAllowed: boolean;
+  customerId?: string;
+  customerPersona?: string;
+  targetSystem?: string;
 };
 
-export type WorkflowRequest = Omit<DemoRequest, "docsText"> & {
+export type WorkflowRequest = Omit<DemoRequest, "docsText" | "industry" | "audience" | "goal" | "liveApiAllowed"> & {
   docsText?: string;
   docsUrl?: string;
+  industry?: string;
+  audience?: Audience;
+  goal?: string;
+  liveApiAllowed?: boolean;
 };
 
 export type SourceChunk = {
@@ -22,8 +30,25 @@ export type SourceChunk = {
   sourceId: string;
   title: string;
   text: string;
-  sourceType: "markdown" | "openapi" | "example";
+  sourceType: "markdown" | "openapi" | "example" | "customer";
   metadata?: Record<string, unknown>;
+};
+
+export type BusinessSignal = {
+  id: string;
+  title: string;
+  summary: string;
+  department?: string;
+  metric?: string;
+  evidenceChunkIds: string[];
+};
+
+export type BusinessContext = {
+  customerId?: string;
+  sourceId?: string;
+  chunks: SourceChunk[];
+  evidence: SourceChunk[];
+  signals: BusinessSignal[];
 };
 
 export type ApiCapability = {

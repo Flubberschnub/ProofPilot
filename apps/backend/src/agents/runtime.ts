@@ -70,10 +70,11 @@ export async function runAgent<Input, Output>(
 }
 
 function resolveAgentRuntime(): AgentRuntimeInfo {
-  if ((process.env.PROOFPILOT_AGENT_RUNTIME ?? "").toLowerCase() === "adk") {
+  const runtime = (process.env.PROOFPILOT_AGENT_RUNTIME ?? "").toLowerCase();
+  if (runtime === "adk") {
     return {
       mode: "adk-compatible",
-      description: "ADK-compatible step agents running inside the ProofPilot TypeScript runtime."
+      description: "Google Agent Development Kit (ADK) remote agent service."
     };
   }
 
