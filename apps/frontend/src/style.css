@@ -193,7 +193,7 @@ body {
 .metro-station {
   display: flex;
   align-items: center;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   position: relative;
   z-index: 2;
   cursor: pointer;

@@ -45,6 +45,8 @@ describe("runProofPilotWorkflow", () => {
       "mvp-04-demo-planner",
       "mvp-05-claim-checker",
       "mvp-06-package-generator",
+      "mvp-08-validation",
+      "mvp-09-tester",
       "mvp-07-export"
     ]);
     expect(result.agents.every((agent) => agent.status === "passed")).toBe(true);

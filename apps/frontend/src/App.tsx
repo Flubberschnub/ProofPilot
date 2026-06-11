@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { apiUrl } from "./config";
 
 type WorkflowResult = {
@@ -58,42 +58,31 @@ type WorkflowResult = {
       objectName?: string;
     };
   };
+  validationPassed: boolean;
+  previewUrl: string | null;
 };
 
 const sampleDocs = `# Acme Document Extraction API
-
-The Acme Document Extraction API lets applications upload business documents and extract structured fields from them.
-
-## Authentication
-
-All requests use Bearer token authentication.
+All requests use Bearer token auth.
 
 ## POST /documents/extract
-
-Uploads a document for extraction. Supported file types include PDF, PNG, and JPG. Request uses multipart/form-data with a file field and optional document_type.
+Uploads document (PDF, PNG, JPG) using multipart/form-data.
 
 ## GET /documents/{document_id}
-
-Returns extraction status and extracted fields. Fields include a name, value, and confidence score.
+Returns extraction status and fields (name, value, confidence).
 
 ## POST /documents/{document_id}/approve
-
-Approves a reviewed extraction result.
+Approves extraction.
 
 ## POST /exports
-
-Exports approved structured data to a downstream system as JSON. The API does not directly integrate with Guidewire, Salesforce, or Epic; customers usually connect exports to their own integration layer.
-
-## Marketing note
-
-Customers often use Acme to reduce manual review effort, but exact time savings depend on document quality, workflow design, and human review policies.`;
+Exports approved data as JSON to external integration layers. Does not integrate directly with CRMs/ERPs.`;
 
 export default function App() {
   // Primary intake inputs
   const [apiName, setApiName] = useState("Acme Document Extraction API");
   const [apiDocs, setApiDocs] = useState(sampleDocs);
   const [customerId, setCustomerId] = useState("aerocore-leasing");
-  const [context, setContext] = useState("Use AeroCore's billing, dispatch, pilot, maintenance, and support records to generate a bespoke demo. Focus on manual billing reconciliation, invoice/repair-log extraction, lease data review, and Salesforce Lease_Agreement__c handoff for Sarah Jenkins and the finance team.");
+  const [context, setContext] = useState("Focus on manual billing/repair-log extraction and Salesforce Lease_Agreement__c sync for Sarah Jenkins at AeroCore.");
   
   // Collapse toggle for advanced parameters
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -112,9 +101,28 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"plan" | "claims" | "files">("plan");
 
+  // Simulated live progress step timer
+  const [activeStationIdx, setActiveStationIdx] = useState(0);
+
+  useEffect(() => {
+    let intervalId: any;
+    if (loading) {
+      setActiveStationIdx(0);
+      intervalId = setInterval(() => {
+        setActiveStationIdx(prev => (prev < 8 ? prev + 1 : prev));
+      }, 1800);
+    } else {
+      setActiveStationIdx(0);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [loading]);
+
   async function runWorkflow() {
     setLoading(true);
     setError(null);
+    setResult(null);
     try {
       const trimmedDocs = apiDocs.trim();
       const docsIsUrl = /^https?:\/\//i.test(trimmedDocs);
@@ -159,11 +167,13 @@ export default function App() {
       : undefined;
 
   // Metro station status helper
+  const stationsOrder = ["IN", "DX", "BD", "SG", "PL", "CL", "VL", "TS", "PK"];
+
   function getStationStatus(stationId: string) {
     if (loading) {
-      // Simulate transit progress color shifts
-      if (stationId === "IN") return "active";
-      if (stationId === "DX") return "active";
+      const idx = stationsOrder.indexOf(stationId);
+      if (idx === activeStationIdx) return "active";
+      if (idx < activeStationIdx) return "passed";
       return "pending";
     }
     if (!result) return "pending";
@@ -176,6 +186,8 @@ export default function App() {
       SG: "mvp-04-demo-planner",
       PL: "mvp-04-demo-planner",
       CL: "mvp-05-claim-checker",
+      VL: "mvp-08-validation",
+      TS: "mvp-09-tester",
       PK: "mvp-06-package-generator"
     };
 
@@ -185,7 +197,7 @@ export default function App() {
     if (matchingAgent) {
       return matchingAgent.status === "passed" ? "passed" : "failed";
     }
-    return "passed"; // Default fallback if agent wasn't explicit but plan exists
+    return "passed";
   }
 
   return (
@@ -221,7 +233,7 @@ export default function App() {
             <div className="station-details">
               <span className="station-code">IN-01</span>
               <span className="station-name">Intake Agent</span>
-              <span className="station-status">{loading ? "Validating Brief..." : result ? "Brief Indexed" : "Awaiting..."}</span>
+              <span className="station-status">{loading && activeStationIdx === 0 ? "Running..." : result ? "Brief Indexed" : "Awaiting..."}</span>
             </div>
           </div>
 
@@ -231,7 +243,7 @@ export default function App() {
               <span className="station-code">DX-02</span>
               <span className="station-name">Docs Profiler</span>
               <span className="station-status">
-                {result ? `${result.chunksIndexed} Chunks` : "Pending..."}
+                {loading && activeStationIdx === 1 ? "Running..." : result ? `${result.chunksIndexed} Chunks` : "Pending..."}
               </span>
             </div>
           </div>
@@ -242,7 +254,7 @@ export default function App() {
               <span className="station-code">BD-03</span>
               <span className="station-name">Business Data</span>
               <span className="station-status">
-                {result?.businessContext?.customerId ? result.businessContext.customerId : "Pending..."}
+                {loading && activeStationIdx === 2 ? "Running..." : result?.businessContext?.customerId ? result.businessContext.customerId : "Pending..."}
               </span>
             </div>
           </div>
@@ -253,7 +265,7 @@ export default function App() {
               <span className="station-code">SG-04</span>
               <span className="station-name">Signals Extract</span>
               <span className="station-status">
-                {result?.businessContext?.signals.length ? `${result.businessContext.signals.length} Signals` : "Pending..."}
+                {loading && activeStationIdx === 3 ? "Running..." : result?.businessContext?.signals.length ? `${result.businessContext.signals.length} Signals` : "Pending..."}
               </span>
             </div>
           </div>
@@ -264,7 +276,7 @@ export default function App() {
               <span className="station-code">PL-05</span>
               <span className="station-name">Demo Planner</span>
               <span className="station-status">
-                {result ? "Plan Generated" : "Pending..."}
+                {loading && activeStationIdx === 4 ? "Running..." : result ? "Plan Generated" : "Pending..."}
               </span>
             </div>
           </div>
@@ -273,9 +285,31 @@ export default function App() {
             <div className="station-indicator"></div>
             <div className="station-details">
               <span className="station-code">CL-06</span>
-              <span className="station-name">Claim Ticket Gate</span>
+              <span className="station-name">Claim Checker</span>
               <span className="station-status">
-                {result?.claimReport ? `${result.claimReport.summary.supported}/${result.claimReport.claims.length} Valid` : "Pending..."}
+                {loading && activeStationIdx === 5 ? "Running..." : result?.claimReport ? `${result.claimReport.summary.supported}/${result.claimReport.claims.length} Valid` : "Pending..."}
+              </span>
+            </div>
+          </div>
+
+          <div className={`metro-station ${getStationStatus("VL")}`}>
+            <div className="station-indicator"></div>
+            <div className="station-details">
+              <span className="station-code">VL-07</span>
+              <span className="station-name">Validation Agent</span>
+              <span className="station-status">
+                {loading && activeStationIdx === 6 ? "Running..." : result?.validationPassed ? "Passed" : result ? "Failed" : "Pending..."}
+              </span>
+            </div>
+          </div>
+
+          <div className={`metro-station ${getStationStatus("TS")}`}>
+            <div className="station-indicator"></div>
+            <div className="station-details">
+              <span className="station-code">TS-08</span>
+              <span className="station-name">Tester Agent</span>
+              <span className="station-status">
+                {loading && activeStationIdx === 7 ? "Running..." : result?.validationPassed ? "Passed" : result ? "Failed" : "Pending..."}
               </span>
             </div>
           </div>
@@ -283,10 +317,10 @@ export default function App() {
           <div className={`metro-station ${getStationStatus("PK")}`}>
             <div className="station-indicator"></div>
             <div className="station-details">
-              <span className="station-code">PK-07</span>
+              <span className="station-code">PK-09</span>
               <span className="station-name">Cargo Manifest</span>
               <span className="station-status">
-                {result ? `${result.files.length} Files Committed` : "Pending..."}
+                {loading && activeStationIdx === 8 ? "Running..." : result ? `${result.files.length} Files Committed` : "Pending..."}
               </span>
             </div>
           </div>
@@ -322,7 +356,7 @@ export default function App() {
               placeholder="Paste docs details, Swagger/OpenAPI or a web documentation URL"
               value={apiDocs}
               onChange={(e) => setApiDocs(e.target.value)}
-              rows={6}
+              rows={4}
             />
           </div>
 
@@ -331,7 +365,7 @@ export default function App() {
             <textarea
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              rows={3}
+              rows={2}
             />
           </div>
 
@@ -530,7 +564,12 @@ export default function App() {
               MANIFEST: {result.files.length} FILES COMMITTED // PACKAGE_CHECK: {result.packageCheck.status.toUpperCase()} // GITLAB_URL: {result.gitlab.url || "N/A"}
             </p>
           </div>
-          <div>
+          <div style={{ display: "flex", gap: "12px" }}>
+            {result.validationPassed && result.previewUrl && (
+              <a className="download-btn" style={{ background: "var(--tozai-blue)" }} href={apiUrl(result.previewUrl)} target="_blank" rel="noopener noreferrer">
+                🌐 RUN LIVE DEMO ON GCP
+              </a>
+            )}
             {artifactDownloadUrl && (
               <a className="download-btn" href={artifactDownloadUrl} download={artifact?.fileName}>
                 📥 DOWNLOAD ZIP CARGO (.ZIP)
