@@ -193,7 +193,7 @@ export default function App() {
       {/* 1. Header Strip */}
       <header className="header-strip">
         <div className="header-title-group">
-          <h1 className="header-title">PROOFPILOT // 運行ルート</h1>
+          <h1 className="header-title">PROOFPILOT // OPERATIONS ROUTE</h1>
           <span className="header-subtitle">URBAN DEMO GENERATOR</span>
         </div>
         <div className="header-meta">
@@ -210,7 +210,7 @@ export default function App() {
       {/* 2. Left Rail: Transit Route Map */}
       <aside className="brutalist-panel left-rail">
         <div className="panel-header">
-          <h2 className="panel-title">Route Map / 路線図</h2>
+          <h2 className="panel-title">Route Map / SYSTEM LINES</h2>
           <span className="panel-station-code">T-LINE</span>
         </div>
         <div className="metro-line-container">
@@ -296,7 +296,7 @@ export default function App() {
       {/* 3. Center Area: Intake Form and Plan Output */}
       <main className="brutalist-panel">
         <div className="panel-header">
-          <h2 className="panel-title">Console Ingestion / 入力フォーム</h2>
+          <h2 className="panel-title">Console Ingestion / INPUT FORM</h2>
           <span className="panel-station-code">MAIN-FORM</span>
         </div>
         
@@ -375,7 +375,7 @@ export default function App() {
           )}
 
           <button className="action-button" onClick={runWorkflow} disabled={loading}>
-            {loading ? "運行中 / ROUTE GENERATING..." : "RUN DEMO ROUTE // 運行開始"}
+            {loading ? "ROUTE GENERATING..." : "RUN DEMO ROUTE"}
           </button>
 
           {error && <div className="error-box">ERROR: {error}</div>}
@@ -465,7 +465,7 @@ export default function App() {
       {/* 4. Right Inspection Rail: Evidence and business signals */}
       <aside className="brutalist-panel right-inspection-rail">
         <div className="panel-header">
-          <h2 className="panel-title">Evidence Inspector / 証拠</h2>
+          <h2 className="panel-title">Evidence Inspector / METRICS</h2>
           <span className="panel-station-code">EVID-01</span>
         </div>
         
@@ -525,7 +525,7 @@ export default function App() {
       {result && (
         <footer className="bottom-output-strip">
           <div className="package-meta">
-            <h3 className="package-meta-title">DEMO CARGO READY / デモ一式</h3>
+            <h3 className="package-meta-title">DEMO CARGO READY / PACKAGE</h3>
             <p className="package-meta-details">
               MANIFEST: {result.files.length} FILES COMMITTED // PACKAGE_CHECK: {result.packageCheck.status.toUpperCase()} // GITLAB_URL: {result.gitlab.url || "N/A"}
             </p>
