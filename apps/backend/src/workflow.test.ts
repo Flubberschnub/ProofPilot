@@ -75,6 +75,6 @@ describe("runProofPilotWorkflow", () => {
     expect(result.businessContext.signals.length).toBeGreaterThan(0);
     expect(result.plan.title).toContain("AeroCore");
     expect(result.plan.story).toContain("aerocore-leasing");
-    expect(result.claimReport.claims.some((claim) => claim.text?.includes("documented workflow pain"))).toBe(true);
+    expect(result.claimReport.claims.some((claim: any) => claim.text?.includes("documented workflow pain"))).toBe(true);
   });
 });
