@@ -89,13 +89,28 @@ Exports approved structured data to a downstream system as JSON. The API does no
 Customers often use Acme to reduce manual review effort, but exact time savings depend on document quality, workflow design, and human review policies.`;
 
 export default function App() {
+  // Primary intake inputs
   const [apiName, setApiName] = useState("Acme Document Extraction API");
   const [apiDocs, setApiDocs] = useState(sampleDocs);
   const [customerId, setCustomerId] = useState("aerocore-leasing");
   const [context, setContext] = useState("Use AeroCore's billing, dispatch, pilot, maintenance, and support records to generate a bespoke demo. Focus on manual billing reconciliation, invoice/repair-log extraction, lease data review, and Salesforce Lease_Agreement__c handoff for Sarah Jenkins and the finance team.");
+  
+  // Collapse toggle for advanced parameters
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Advanced inference variables (client-side pre-filled defaults, editable)
+  const [audience, setAudience] = useState("executive");
+  const [industry, setIndustry] = useState("Leasing & Aviation");
+  const [customerPersona, setCustomerPersona] = useState("Sarah Jenkins, Billing & Finance Administrator");
+  const [targetSystem, setTargetSystem] = useState("Salesforce");
+  const [preferredStack, setPreferredStack] = useState("React + Node");
+  const [liveApiAllowed, setLiveApiAllowed] = useState(false);
+
+  // App UI state
   const [result, setResult] = useState<WorkflowResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"plan" | "claims" | "files">("plan");
 
   async function runWorkflow() {
     setLoading(true);
@@ -111,8 +126,12 @@ export default function App() {
           docsUrl: docsIsUrl ? trimmedDocs : undefined,
           docsText: docsIsUrl ? undefined : trimmedDocs || undefined,
           context: context.trim() || undefined,
-          preferredStack: "React + Node",
-          liveApiAllowed: false,
+          audience,
+          industry,
+          customerPersona,
+          targetSystem,
+          preferredStack,
+          liveApiAllowed,
           customerId: customerId.trim() || undefined
         })
       });
@@ -131,7 +150,7 @@ export default function App() {
     }
   }
 
-  const filePreview = useMemo(() => result?.files?.slice(0, 6) ?? [], [result]);
+  const filePreview = useMemo(() => result?.files ?? [], [result]);
   const artifact = result?.gitlab.artifact;
   const artifactDownloadUrl = artifact?.downloadUrl?.startsWith("/api/")
     ? apiUrl(artifact.downloadUrl)
@@ -139,109 +158,387 @@ export default function App() {
       ? artifact.downloadUrl
       : undefined;
 
+  // Metro station status helper
+  function getStationStatus(stationId: string) {
+    if (loading) {
+      // Simulate transit progress color shifts
+      if (stationId === "IN") return "active";
+      if (stationId === "DX") return "active";
+      return "pending";
+    }
+    if (!result) return "pending";
+
+    // Map agents inside the output
+    const agentMap: Record<string, string> = {
+      IN: "mvp-01-intake",
+      DX: "mvp-02-source-capability",
+      BD: "mvp-03-business-context",
+      SG: "mvp-04-demo-planner",
+      PL: "mvp-04-demo-planner",
+      CL: "mvp-05-claim-checker",
+      PK: "mvp-06-package-generator"
+    };
+
+    const targetAgentId = agentMap[stationId];
+    const matchingAgent = result.agents.find(a => a.id === targetAgentId || a.name.toLowerCase().includes(stationId.toLowerCase()));
+    
+    if (matchingAgent) {
+      return matchingAgent.status === "passed" ? "passed" : "failed";
+    }
+    return "passed"; // Default fallback if agent wasn't explicit but plan exists
+  }
+
   return (
-    <main className="page">
-          <section className="hero">
-        <p className="eyebrow">Google Rapid Agent Hackathon scaffold</p>
-        <h1>ProofPilot</h1>
-        <p>Generate source-grounded API demos from product docs, docs URLs, and a customer scenario.</p>
-      </section>
+    <div className="app-container">
+      {/* 1. Header Strip */}
+      <header className="header-strip">
+        <div className="header-title-group">
+          <h1 className="header-title">PROOFPILOT // 運行ルート</h1>
+          <span className="header-subtitle">URBAN DEMO GENERATOR</span>
+        </div>
+        <div className="header-meta">
+          {result && (
+            <>
+              <span>MODEL: {result.model.provider.toUpperCase()} ({result.model.model})</span>
+              <span>RUNTIME: {result.agentRuntime.mode.toUpperCase()}</span>
+            </>
+          )}
+          <span>SYS_STATUS: {loading ? "INGESTING" : result ? "OPERATIONAL" : "READY"}</span>
+        </div>
+      </header>
 
-      <section className="grid">
-        <div className="card">
-          <h2>1. Demo brief</h2>
-          <label>API</label>
-          <input value={apiName} onChange={(e) => setApiName(e.target.value)} />
+      {/* 2. Left Rail: Transit Route Map */}
+      <aside className="brutalist-panel left-rail">
+        <div className="panel-header">
+          <h2 className="panel-title">Route Map / 路線図</h2>
+          <span className="panel-station-code">T-LINE</span>
+        </div>
+        <div className="metro-line-container">
+          <div className={`metro-track ${loading ? "active" : ""}`}></div>
+          
+          <div className={`metro-station ${getStationStatus("IN")}`}>
+            <div className="station-indicator"></div>
+            <div className="station-details">
+              <span className="station-code">IN-01</span>
+              <span className="station-name">Intake Agent</span>
+              <span className="station-status">{loading ? "Validating Brief..." : result ? "Brief Indexed" : "Awaiting..."}</span>
+            </div>
+          </div>
 
-          <label>Data</label>
-          <input
-            placeholder="sample-data folder name, e.g. aerocore-leasing"
-            value={customerId}
-            onChange={(e) => setCustomerId(e.target.value)}
-          />
+          <div className={`metro-station ${getStationStatus("DX")}`}>
+            <div className="station-indicator"></div>
+            <div className="station-details">
+              <span className="station-code">DX-02</span>
+              <span className="station-name">Docs Profiler</span>
+              <span className="station-status">
+                {result ? `${result.chunksIndexed} Chunks` : "Pending..."}
+              </span>
+            </div>
+          </div>
 
-          <label>API docs</label>
-          <textarea
-            placeholder="Paste docs, OpenAPI, Markdown, JSON, or a docs URL"
-            value={apiDocs}
-            onChange={(e) => setApiDocs(e.target.value)}
-            rows={12}
-          />
+          <div className={`metro-station ${getStationStatus("BD")}`}>
+            <div className="station-indicator"></div>
+            <div className="station-details">
+              <span className="station-code">BD-03</span>
+              <span className="station-name">Business Data</span>
+              <span className="station-status">
+                {result?.businessContext?.customerId ? result.businessContext.customerId : "Pending..."}
+              </span>
+            </div>
+          </div>
 
-          <label>Context</label>
-          <textarea value={context} onChange={(e) => setContext(e.target.value)} rows={7} />
+          <div className={`metro-station ${getStationStatus("SG")}`}>
+            <div className="station-indicator"></div>
+            <div className="station-details">
+              <span className="station-code">SG-04</span>
+              <span className="station-name">Signals Extract</span>
+              <span className="station-status">
+                {result?.businessContext?.signals.length ? `${result.businessContext.signals.length} Signals` : "Pending..."}
+              </span>
+            </div>
+          </div>
 
-          <button onClick={runWorkflow} disabled={loading}>{loading ? "Generating..." : "Generate grounded demo"}</button>
-          {error && <p className="error">{error}</p>}
+          <div className={`metro-station ${getStationStatus("PL")}`}>
+            <div className="station-indicator"></div>
+            <div className="station-details">
+              <span className="station-code">PL-05</span>
+              <span className="station-name">Demo Planner</span>
+              <span className="station-status">
+                {result ? "Plan Generated" : "Pending..."}
+              </span>
+            </div>
+          </div>
+
+          <div className={`metro-station ${getStationStatus("CL")}`}>
+            <div className="station-indicator"></div>
+            <div className="station-details">
+              <span className="station-code">CL-06</span>
+              <span className="station-name">Claim Ticket Gate</span>
+              <span className="station-status">
+                {result?.claimReport ? `${result.claimReport.summary.supported}/${result.claimReport.claims.length} Valid` : "Pending..."}
+              </span>
+            </div>
+          </div>
+
+          <div className={`metro-station ${getStationStatus("PK")}`}>
+            <div className="station-indicator"></div>
+            <div className="station-details">
+              <span className="station-code">PK-07</span>
+              <span className="station-name">Cargo Manifest</span>
+              <span className="station-status">
+                {result ? `${result.files.length} Files Committed` : "Pending..."}
+              </span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* 3. Center Area: Intake Form and Plan Output */}
+      <main className="brutalist-panel">
+        <div className="panel-header">
+          <h2 className="panel-title">Console Ingestion / 入力フォーム</h2>
+          <span className="panel-station-code">MAIN-FORM</span>
+        </div>
+        
+        <div className="main-intake-form">
+          <div className="form-row">
+            <div className="form-group">
+              <label>API Name</label>
+              <input value={apiName} onChange={(e) => setApiName(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Customer ID (Business Data)</label>
+              <input
+                placeholder="sample-data folder name, e.g. aerocore-leasing"
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>API Documentation (Markdown, JSON or HTTPS URL)</label>
+            <textarea
+              placeholder="Paste docs details, Swagger/OpenAPI or a web documentation URL"
+              value={apiDocs}
+              onChange={(e) => setApiDocs(e.target.value)}
+              rows={6}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Demo Brief & Customer Context</label>
+            <textarea
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          {/* Advanced toggle */}
+          <div className="advanced-toggle" onClick={() => setShowAdvanced(!showAdvanced)}>
+            <span>{showAdvanced ? "▼ Collapse Advanced Parameters" : "▶ Expand Advanced Parameters (Inferred Defaults)"}</span>
+          </div>
+
+          {showAdvanced && (
+            <div className="advanced-fields">
+              <div className="form-group">
+                <label>Target Audience</label>
+                <input value={audience} onChange={(e) => setAudience(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Industry</label>
+                <input value={industry} onChange={(e) => setIndustry(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Target Persona</label>
+                <input value={customerPersona} onChange={(e) => setCustomerPersona(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Target System</label>
+                <input value={targetSystem} onChange={(e) => setTargetSystem(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Preferred Stack</label>
+                <input value={preferredStack} onChange={(e) => setPreferredStack(e.target.value)} />
+              </div>
+              <div className="form-group" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "8px", marginTop: "18px" }}>
+                <input
+                  type="checkbox"
+                  id="liveApiAllowed"
+                  checked={liveApiAllowed}
+                  onChange={(e) => setLiveApiAllowed(e.target.checked)}
+                />
+                <label htmlFor="liveApiAllowed" style={{ marginBottom: 0, cursor: "pointer" }}>Allow Live API Calls</label>
+              </div>
+            </div>
+          )}
+
+          <button className="action-button" onClick={runWorkflow} disabled={loading}>
+            {loading ? "運行中 / ROUTE GENERATING..." : "RUN DEMO ROUTE // 運行開始"}
+          </button>
+
+          {error && <div className="error-box">ERROR: {error}</div>}
         </div>
 
-        <div className="stack">
-          <section className="card">
-            <h2>2. Generated plan</h2>
-            {!result ? <p className="muted">Run the workflow to generate a plan.</p> : <>
-              <p className="muted">Runtime: {result.agentRuntime.mode}. Model: {result.model.provider} / {result.model.model}</p>
-              <p className="muted">Docs: {result.docsSourceUrl ?? "pasted text"}{result.docsCharacters ? ` (${result.docsCharacters.toLocaleString()} chars)` : ""}</p>
-              {result.businessContext?.customerId && <p className="muted">Customer data: {result.businessContext.customerId} ({result.customerChunksIndexed?.toLocaleString() ?? 0} chunks, {result.businessContext.signals.length} signals)</p>}
-              <h3>{result.plan.title}</h3>
-              <p>{result.plan.story}</p>
-              <div className="chips">{result.plan.screens.map((s) => <span key={s}>{s}</span>)}</div>
-            </>}
-          </section>
+        {/* Plan Output tabs */}
+        {result && (
+          <div className="plan-overview-card">
+            <div className="tab-row">
+              <div className={`tab-item ${activeTab === "plan" ? "active" : ""}`} onClick={() => setActiveTab("plan")}>
+                01. Demo Route Plan
+              </div>
+              <div className={`tab-item ${activeTab === "claims" ? "active" : ""}`} onClick={() => setActiveTab("claims")}>
+                02. Claim Ticket Gates
+              </div>
+              <div className={`tab-item ${activeTab === "files" ? "active" : ""}`} onClick={() => setActiveTab("files")}>
+                03. Manifest Cargo Files
+              </div>
+            </div>
 
-          <section className="card">
-            <h2>Business context</h2>
-            {!result?.businessContext?.signals.length ? <p className="muted">Customer-specific evidence will appear here when a sample data set is provided.</p> : <div className="agent-list">
-              {result.businessContext.signals.map((signal) => (
-                <article key={signal.id} className="agent-row">
-                  <div>
-                    <strong>{signal.title}</strong>
-                    <p>{signal.summary}</p>
-                    <small>{[signal.department, signal.metric].filter(Boolean).join(" / ")}</small>
+            <div className="tab-contents">
+              {activeTab === "plan" && (
+                <div>
+                  <h3 className="plan-title">{result.plan.title}</h3>
+                  <p className="plan-story">{result.plan.story}</p>
+                  <div style={{ marginTop: "12px" }}>
+                    <h4 style={{ fontSize: "12px", textTransform: "uppercase", marginBottom: "8px", fontFamily: "var(--font-mono)" }}>
+                      DEMO FLOW STATIONS (SCREENS)
+                    </h4>
+                    {result.plan.screens.map((screen, idx) => (
+                      <div key={screen} className="screen-line">
+                        <span className="screen-badge">STATION 0{idx + 1}</span>
+                        <span style={{ fontSize: "13px", fontWeight: "700" }}>{screen}</span>
+                      </div>
+                    ))}
                   </div>
-                </article>
-              ))}
-            </div>}
-          </section>
+                </div>
+              )}
 
-          <section className="card">
-            <h2>Agent pipeline</h2>
-            {!result ? <p className="muted">Each README MVP step will appear here as a completed agent run.</p> : <div className="agent-list">
-              {result.agents.map((agent) => (
-                <article key={agent.id} className="agent-row">
-                  <div>
-                    <strong>{agent.name}</strong>
-                    <p>{agent.outputSummary || agent.error}</p>
-                    <small>{agent.tools.join(", ")}</small>
-                  </div>
-                  <span className={`badge ${agent.status}`}>{agent.durationMs}ms</span>
-                </article>
-              ))}
-            </div>}
-          </section>
+              {activeTab === "claims" && (
+                <div>
+                  <table className="claims-table">
+                    <thead>
+                      <tr>
+                        <th>CLAIM VALIDATION</th>
+                        <th style={{ width: "100px" }}>STATUS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.claimReport.claims.map((claim) => (
+                        <tr key={claim.id}>
+                          <td>
+                            <div style={{ fontWeight: "700" }}>{claim.text}</div>
+                            {claim.rewrite && (
+                              <div style={{ fontSize: "11px", color: "var(--track-gray)", marginTop: "4px", borderLeft: "2px solid var(--ginza-orange)", paddingLeft: "6px" }}>
+                                <strong>Rewrite: </strong> {claim.rewrite}
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            <span className={`gate-badge ${claim.status}`}>{claim.status}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
-          <section className="card">
-            <h2>3. Elastic-powered claim report</h2>
-            {!result ? <p className="muted">Claims will be checked against retrieved doc evidence.</p> : <table>
-              <thead><tr><th>Claim</th><th>Status</th></tr></thead>
-              <tbody>{result.claimReport.claims.map((c) => <tr key={c.id}><td>{c.rewrite ?? c.text}</td><td><span className={`badge ${c.status}`}>{c.status}</span></td></tr>)}</tbody>
-            </table>}
-          </section>
+              {activeTab === "files" && (
+                <div>
+                  <ul className="file-list">
+                    {filePreview.map((file) => (
+                      <li key={file.path}>
+                        <span>📁 {file.path}</span>
+                        <span style={{ color: "var(--track-gray)" }}>{file.content.length.toLocaleString()} bytes</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
 
-          <section className="card">
-            <h2>4. Generated package</h2>
-            {!result ? <p className="muted">Generated files and GitLab export appear here.</p> : <>
-              <p><strong>{result.files.length}</strong> files generated. Package check: <strong>{result.packageCheck.status}</strong>. GitLab mode: <strong>{result.gitlab.mode}</strong></p>
-              {artifactDownloadUrl && <p><a className="download-link" href={artifactDownloadUrl} download={artifact?.fileName}>Download demo zip</a></p>}
-              {artifact && <p className="muted">Artifact: {artifact.mode} / {artifact.fileName}{artifact.sizeBytes ? ` (${Math.round(artifact.sizeBytes / 1024)} KB)` : ""}</p>}
-              {artifact?.message && <p className="muted">{artifact.message}</p>}
-              {artifact?.objectName && <p className="muted">Object: <code>{artifact.objectName}</code></p>}
-              {result.gitlab.url && <a href={result.gitlab.url}>{result.gitlab.url}</a>}
-              {result.gitlab.localPath && <p className="muted">Local export: <code>{result.gitlab.localPath}</code></p>}
-              <ul>{filePreview.map((f) => <li key={f.path}><code>{f.path}</code></li>)}</ul>
-            </>}
-          </section>
+      {/* 4. Right Inspection Rail: Evidence and business signals */}
+      <aside className="brutalist-panel right-inspection-rail">
+        <div className="panel-header">
+          <h2 className="panel-title">Evidence Inspector / 証拠</h2>
+          <span className="panel-station-code">EVID-01</span>
         </div>
-      </section>
-    </main>
+        
+        {!result ? (
+          <p style={{ fontSize: "12px", color: "var(--track-gray)", fontStyle: "italic" }}>
+            Awaiting active Demo Route generation to parse grounding evidence logs...
+          </p>
+        ) : (
+          <div className="inspection-list">
+            <h3 style={{ fontSize: "11px", textTransform: "uppercase", fontFamily: "var(--font-mono)", color: "var(--ink-black)" }}>
+              DEMO WORKFLOW METADATA
+            </h3>
+            <div className="inspection-item" style={{ background: "var(--paper-white)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", fontSize: "11px" }}>
+                <div><strong>DOCS CHARS:</strong> {result.docsCharacters?.toLocaleString()}</div>
+                <div><strong>CHUNKS IDXD:</strong> {result.chunksIndexed}</div>
+                <div><strong>BIZ CHUNKS:</strong> {result.customerChunksIndexed || 0}</div>
+                <div><strong>GIT LAB MODE:</strong> {result.gitlab.mode}</div>
+              </div>
+            </div>
+
+            <h3 style={{ fontSize: "11px", textTransform: "uppercase", fontFamily: "var(--font-mono)", color: "var(--hanzomon-purple)", marginTop: "10px" }}>
+              EXTRACTED CUSTOMER SIGNALS ({result.businessContext?.signals.length || 0})
+            </h3>
+            {result.businessContext?.signals.map((signal) => (
+              <div key={signal.id} className="inspection-item" style={{ borderLeft: "4px solid var(--hanzomon-purple)" }}>
+                <div className="inspection-item-title">
+                  <span>{signal.title}</span>
+                  <span style={{ color: "var(--hanzomon-purple)" }}>{signal.id.toUpperCase()}</span>
+                </div>
+                <div className="inspection-item-body">
+                  <p>{signal.summary}</p>
+                  <div style={{ marginTop: "4px", fontSize: "10px", color: "var(--track-gray)" }}>
+                    DEPT: {signal.department || "N/A"} / METRIC: {signal.metric || "N/A"}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <h3 style={{ fontSize: "11px", textTransform: "uppercase", fontFamily: "var(--font-mono)", color: "var(--track-gray)", marginTop: "10px" }}>
+              AGENT CONSOLE LOGS
+            </h3>
+            {result.agents.map((agent) => (
+              <div key={agent.id} className="inspection-item" style={{ padding: "8px", fontSize: "11px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
+                  <span>🤖 {agent.name}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "10px" }}>{agent.durationMs}ms</span>
+                </div>
+                <div style={{ color: "#555", marginTop: "2px" }}>{agent.outputSummary || agent.error}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </aside>
+
+      {/* 5. Bottom Output Strip: GitLab & Zip manifest */}
+      {result && (
+        <footer className="bottom-output-strip">
+          <div className="package-meta">
+            <h3 className="package-meta-title">DEMO CARGO READY / デモ一式</h3>
+            <p className="package-meta-details">
+              MANIFEST: {result.files.length} FILES COMMITTED // PACKAGE_CHECK: {result.packageCheck.status.toUpperCase()} // GITLAB_URL: {result.gitlab.url || "N/A"}
+            </p>
+          </div>
+          <div>
+            {artifactDownloadUrl && (
+              <a className="download-btn" href={artifactDownloadUrl} download={artifact?.fileName}>
+                📥 DOWNLOAD ZIP CARGO (.ZIP)
+              </a>
+            )}
+          </div>
+        </footer>
+      )}
+    </div>
   );
 }
