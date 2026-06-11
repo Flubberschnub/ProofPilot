@@ -79,18 +79,18 @@ Exports approved data as JSON to external integration layers. Does not integrate
 
 export default function App() {
   // Primary intake inputs
-  const [apiName, setApiName] = useState("Acme Document Extraction API");
-  const [apiDocs, setApiDocs] = useState(sampleDocs);
-  const [customerId, setCustomerId] = useState("aerocore-leasing");
-  const [context, setContext] = useState("Focus on manual billing/repair-log extraction and Salesforce Lease_Agreement__c sync for Sarah Jenkins at AeroCore.");
+  const [apiName, setApiName] = useState("Open Meteo");
+  const [apiDocs, setApiDocs] = useState("https://open-meteo.com/en/docs");
+  const [customerId, setCustomerId] = useState("Meteo-API");
+  const [context, setContext] = useState("Demonstrate how the use of Open Meteo could be used as a part of the internal dispatch portal to inform the dispatch and scheduling coordinators in advance of weather events that could prevent normal flight options of Aerocore leasing. Generate a mock dashboard that shows the weather for the next week for a city that the user selects, highlighting weather where aircraft operations will be limited.");
   
   // Collapse toggle for advanced parameters
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Advanced inference variables (client-side pre-filled defaults, editable)
   const [audience, setAudience] = useState("executive");
-  const [industry, setIndustry] = useState("Leasing & Aviation");
-  const [customerPersona, setCustomerPersona] = useState("Sarah Jenkins, Billing & Finance Administrator");
+  const [industry, setIndustry] = useState("Aviation");
+  const [customerPersona, setCustomerPersona] = useState("Flight Operations Dispatcher");
   const [targetSystem, setTargetSystem] = useState("Salesforce");
   const [preferredStack, setPreferredStack] = useState("React + Node");
   const [liveApiAllowed, setLiveApiAllowed] = useState(false);
