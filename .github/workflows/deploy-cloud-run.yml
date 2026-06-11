@@ -72,6 +72,7 @@ jobs:
 
       - name: Build and push ADK agent image
         run: |
+          cp -r sample-data apps/adk-proofpilot-agent/sample-data
           ADK_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/proofpilot-adk-agent:${GITHUB_SHA}"
           docker build -f apps/adk-proofpilot-agent/Dockerfile -t "${ADK_IMAGE}" apps/adk-proofpilot-agent
           docker push "${ADK_IMAGE}"
