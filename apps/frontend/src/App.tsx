@@ -233,7 +233,7 @@ export default function App() {
             <div className="station-details">
               <span className="station-code">IN-01</span>
               <span className="station-name">Intake Agent</span>
-              <span className="station-status">{loading && activeStationIdx === 0 ? "Running..." : result ? "Brief Indexed" : "Awaiting..."}</span>
+              <span className="station-status">{loading && activeStationIdx === 0 ? "Running..." : (result || (loading && activeStationIdx > 0)) ? "Brief Indexed" : "Awaiting..."}</span>
             </div>
           </div>
 
@@ -243,7 +243,7 @@ export default function App() {
               <span className="station-code">DX-02</span>
               <span className="station-name">Docs Profiler</span>
               <span className="station-status">
-                {loading && activeStationIdx === 1 ? "Running..." : result ? `${result.chunksIndexed} Chunks` : "Pending..."}
+                {loading && activeStationIdx === 1 ? "Running..." : result ? `${result.chunksIndexed} Chunks` : (loading && activeStationIdx > 1) ? "Chunks Indexed" : "Pending..."}
               </span>
             </div>
           </div>
@@ -254,7 +254,7 @@ export default function App() {
               <span className="station-code">BD-03</span>
               <span className="station-name">Business Data</span>
               <span className="station-status">
-                {loading && activeStationIdx === 2 ? "Running..." : result?.businessContext?.customerId ? result.businessContext.customerId : "Pending..."}
+                {loading && activeStationIdx === 2 ? "Running..." : result?.businessContext?.customerId ? result.businessContext.customerId : (loading && activeStationIdx > 2) ? "Context Loaded" : "Pending..."}
               </span>
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function App() {
               <span className="station-code">SG-04</span>
               <span className="station-name">Signals Extract</span>
               <span className="station-status">
-                {loading && activeStationIdx === 3 ? "Running..." : result?.businessContext?.signals.length ? `${result.businessContext.signals.length} Signals` : "Pending..."}
+                {loading && activeStationIdx === 3 ? "Running..." : result?.businessContext?.signals.length ? `${result.businessContext.signals.length} Signals` : (loading && activeStationIdx > 3) ? "Signals Extracted" : "Pending..."}
               </span>
             </div>
           </div>
@@ -276,7 +276,7 @@ export default function App() {
               <span className="station-code">PL-05</span>
               <span className="station-name">Demo Planner</span>
               <span className="station-status">
-                {loading && activeStationIdx === 4 ? "Running..." : result ? "Plan Generated" : "Pending..."}
+                {loading && activeStationIdx === 4 ? "Running..." : (result || (loading && activeStationIdx > 4)) ? "Plan Generated" : "Pending..."}
               </span>
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function App() {
               <span className="station-code">CL-06</span>
               <span className="station-name">Claim Checker</span>
               <span className="station-status">
-                {loading && activeStationIdx === 5 ? "Running..." : result?.claimReport ? `${result.claimReport.summary.supported}/${result.claimReport.claims.length} Valid` : "Pending..."}
+                {loading && activeStationIdx === 5 ? "Running..." : result?.claimReport ? `${result.claimReport.summary.supported}/${result.claimReport.claims.length} Valid` : (loading && activeStationIdx > 5) ? "Claims Checked" : "Pending..."}
               </span>
             </div>
           </div>
@@ -298,7 +298,7 @@ export default function App() {
               <span className="station-code">VL-07</span>
               <span className="station-name">Validation Agent</span>
               <span className="station-status">
-                {loading && activeStationIdx === 6 ? "Running..." : result?.validationPassed ? "Passed" : result ? "Failed" : "Pending..."}
+                {loading && activeStationIdx === 6 ? "Running..." : result ? (result.validationPassed ? "Passed" : "Failed") : (loading && activeStationIdx > 6) ? "Passed" : "Pending..."}
               </span>
             </div>
           </div>
@@ -309,7 +309,7 @@ export default function App() {
               <span className="station-code">TS-08</span>
               <span className="station-name">Tester Agent</span>
               <span className="station-status">
-                {loading && activeStationIdx === 7 ? "Running..." : result?.validationPassed ? "Passed" : result ? "Failed" : "Pending..."}
+                {loading && activeStationIdx === 7 ? "Running..." : result ? (result.validationPassed ? "Passed" : "Failed") : (loading && activeStationIdx > 7) ? "Passed" : "Pending..."}
               </span>
             </div>
           </div>
@@ -320,7 +320,7 @@ export default function App() {
               <span className="station-code">PK-09</span>
               <span className="station-name">Cargo Manifest</span>
               <span className="station-status">
-                {loading && activeStationIdx === 8 ? "Running..." : result ? `${result.files.length} Files Committed` : "Pending..."}
+                {loading && activeStationIdx === 8 ? "Running..." : result ? `${result.files.length} Files Committed` : (loading && activeStationIdx > 8) ? "Files Committed" : "Pending..."}
               </span>
             </div>
           </div>
