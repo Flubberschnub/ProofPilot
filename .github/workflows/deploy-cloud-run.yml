@@ -16,7 +16,7 @@ env:
   FRONTEND_RUNTIME_SERVICE_ACCOUNT: ${{ vars.FRONTEND_RUNTIME_SERVICE_ACCOUNT }}
   EXPORT_BUCKET: ${{ vars.EXPORT_BUCKET }}
   VERTEX_LOCATION: ${{ vars.VERTEX_LOCATION || 'global' }}
-  VERTEX_MODEL: ${{ vars.VERTEX_MODEL || 'gemini-3.5-flash' }}
+  VERTEX_MODEL: ${{ vars.VERTEX_MODEL || 'gemini-1.5-flash' }}
 
 jobs:
   test:
