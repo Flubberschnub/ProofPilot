@@ -70,6 +70,34 @@ jobs:
       - name: Configure Docker auth
         run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
+      - name: Build and push ADK agent image
+        run: |
+          ADK_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/proofpilot-adk-agent:${GITHUB_SHA}"
+          docker build -f apps/adk-proofpilot-agent/Dockerfile -t "${ADK_IMAGE}" apps/adk-proofpilot-agent
+          docker push "${ADK_IMAGE}"
+          echo "ADK_IMAGE=${ADK_IMAGE}" >> "${GITHUB_ENV}"
+
+      - name: Deploy private ADK agent
+        run: |
+          gcloud run deploy "proofpilot-adk-agent" \
+            --image "${ADK_IMAGE}" \
+            --region "${REGION}" \
+            --no-allow-unauthenticated \
+            --set-env-vars "MOCK_MODE=false,PROOFPILOT_MODEL_PROVIDER=vertex,VERTEX_PROJECT_ID=${PROJECT_ID},VERTEX_LOCATION=${VERTEX_LOCATION},VERTEX_MODEL=${VERTEX_MODEL}"
+
+      - name: Read ADK agent URL
+        run: |
+          ADK_URL="$(gcloud run services describe "proofpilot-adk-agent" --region "${REGION}" --format='value(status.url)')"
+          echo "ADK_URL=${ADK_URL}" >> "${GITHUB_ENV}"
+
+      - name: Grant backend service account ADK agent invoke access
+        run: |
+          gcloud run services add-iam-policy-binding "proofpilot-adk-agent" \
+            --region "${REGION}" \
+            --member "serviceAccount:${BACKEND_RUNTIME_SERVICE_ACCOUNT}" \
+            --role "roles/run.invoker" \
+            --quiet
+
       - name: Build and push backend image
         run: |
           BACKEND_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/${BACKEND_SERVICE}:${GITHUB_SHA}"
@@ -84,7 +112,7 @@ jobs:
             --region "${REGION}" \
             --service-account "${BACKEND_RUNTIME_SERVICE_ACCOUNT}" \
             --no-allow-unauthenticated \
-            --set-env-vars "MOCK_MODE=false,PROOFPILOT_AGENT_RUNTIME=bespoke,PROOFPILOT_MODEL_PROVIDER=vertex,VERTEX_PROJECT_ID=${PROJECT_ID},VERTEX_LOCATION=${VERTEX_LOCATION},VERTEX_USE_METADATA_TOKEN=true,VERTEX_MODEL=${VERTEX_MODEL},PROOFPILOT_ELASTIC_PROVIDER=memory,PROOFPILOT_EXPORT_BUCKET=${EXPORT_BUCKET}"
+            --set-env-vars "MOCK_MODE=false,PROOFPILOT_AGENT_RUNTIME=adk,PROOFPILOT_ADK_AGENT_URL=${ADK_URL},PROOFPILOT_MODEL_PROVIDER=vertex,VERTEX_PROJECT_ID=${PROJECT_ID},VERTEX_LOCATION=${VERTEX_LOCATION},VERTEX_USE_METADATA_TOKEN=true,VERTEX_MODEL=${VERTEX_MODEL},PROOFPILOT_ELASTIC_PROVIDER=memory,PROOFPILOT_EXPORT_BUCKET=${EXPORT_BUCKET}"
 
       - name: Read backend URL
         run: |
