@@ -270,16 +270,3 @@ For implementation details and next-step architecture notes, see:
 
 - `docs/elastic-adk-gcp-plan.md`
 - `docs/ui-design-direction.md`
-
-## Hackathon judging guide
-
-Good things to inspect:
-
-- The app runs locally without external services.
-- The generated plan changes when docs or customer context change.
-- Customer signals come from `sample-data/aerocore-leasing`.
-- The claim checker distinguishes supported claims from softer marketing language.
-- The agent trace exposes how the result was produced.
-- The generated package can be reviewed as files instead of only as chat output.
-
-The core idea is not just "generate a demo." It is "generate a demo that can explain where its claims came from."
