@@ -16,8 +16,9 @@ import { indexCustomerData, indexDocs } from "../services/elastic.js";
 import { loadSampleCustomerDocuments } from "../services/customer-data.js";
 import { exportToGitLab } from "../services/gitlab.js";
 import { generateDemoFiles } from "../services/generator.js";
-import { validateGeneratedPackage } from "./package-check.js";
+import { validateGeneratedPackage, validateCodeIntegrity } from "./package-check.js";
 import type { ProofPilotAgent } from "./runtime.js";
+import { getModelClient } from "../models/index.js";
 
 export type IntakeOutput = {
   input: DemoRequest;
@@ -180,18 +181,17 @@ export const testerAgent: ProofPilotAgent<{ files: GeneratedFile[] }, { passed: 
   description: "Performs code syntax verification and dry-run compilation checks on the generated frontend and backend files.",
   tools: ["code-inspector.dryRunCompile"],
   async run({ files }) {
+    // 1. Run the strict code integrity (tag balance and reference validation) check
+    const integrityCheck = validateCodeIntegrity(files);
+    if (!integrityCheck.passed) {
+      return {
+        passed: false,
+        message: `Integrity check failed: ${integrityCheck.errorMsg}`
+      };
+    }
+
     let compilationPassed = true;
     let errorMsg = "";
-
-    const appFile = files.find(f => f.path.endsWith("App.tsx"));
-    if (appFile) {
-      const openTags = (appFile.content.match(/<[a-zA-Z]/g) || []).length;
-      const closeTags = (appFile.content.match(/<\/[a-zA-Z]/g) || []).length;
-      if (Math.abs(openTags - closeTags) > 10) {
-        compilationPassed = false;
-        errorMsg = "Unbalanced JSX tags in App.tsx. ";
-      }
-    }
 
     const serverFile = files.find(f => f.path.endsWith("server.js"));
     if (serverFile) {
@@ -212,6 +212,73 @@ export const testerAgent: ProofPilotAgent<{ files: GeneratedFile[] }, { passed: 
   summarizeOutput: (output) => output.message
 };
 
+export type CodeRepairInput = {
+  files: GeneratedFile[];
+  errorMsg: string;
+  plan: DemoPlan;
+  input: DemoRequest;
+};
+
+export type CodeRepairOutput = {
+  files: GeneratedFile[];
+};
+
+export const codeRepairAgent: ProofPilotAgent<CodeRepairInput, CodeRepairOutput> = {
+  id: "mvp-10-code-repair",
+  name: "Code Repair Agent",
+  description: "Repairs compilation or syntax errors in generated files using LLM self-correction based on compiler/tester feedback.",
+  tools: ["model.repairCode"],
+  async run({ files, errorMsg, plan, input }) {
+    const appFile = files.find(f => f.path.endsWith("App.tsx"));
+    if (!appFile) {
+      return { files };
+    }
+
+    const prompt = `
+You are ProofPilot's Code Repair Agent.
+The generated frontend React code in 'App.tsx' failed compilation/integrity checks with the following error:
+"${errorMsg}"
+
+Here is the original generated 'App.tsx' content:
+\`\`\`tsx
+${appFile.content}
+\`\`\`
+
+Based on the error, repair the code in 'App.tsx' so that:
+1. All tags are balanced correctly.
+2. All functions and variables referenced (e.g. state setters, local variables, utility functions) are declared in the file or are standard React / JavaScript globals (like useState, useEffect, useMemo, Math, JSON).
+3. Do NOT call any undefined external utility functions (like escapeForTemplate). If escaping is needed, output static strings or inline replacements.
+
+Return ONLY the corrected, complete, raw 'App.tsx' code. Do not include markdown code block formatting (such as \`\`\`tsx).
+    `.trim();
+
+    const modelClient = getModelClient();
+    const repairedCode = await modelClient.generateText({
+      prompt,
+      system: "You are an expert React and TypeScript code correction assistant. Return ONLY the repaired code block as raw text."
+    });
+
+    let cleanRepairedCode = repairedCode.trim();
+    if (cleanRepairedCode.startsWith("```")) {
+      cleanRepairedCode = cleanRepairedCode
+        .replace(/^```[a-zA-Z0-9_]*\n/i, "")
+        .replace(/```$/, "")
+        .trim();
+    }
+
+    const updatedFiles = files.map(file => {
+      if (file.path.endsWith("App.tsx")) {
+        return { ...file, content: cleanRepairedCode };
+      }
+      return file;
+    });
+
+    return { files: updatedFiles };
+  },
+  summarizeInput: ({ errorMsg }) => `Error to repair: ${errorMsg}`,
+  summarizeOutput: (output) => `Repaired ${output.files.length} files`
+};
+
 export function listWorkflowAgents() {
   return [
     intakeAgent,
@@ -222,7 +289,8 @@ export function listWorkflowAgents() {
     packageGeneratorAgent,
     exportAgent,
     validationAgent,
-    testerAgent
+    testerAgent,
+    codeRepairAgent
   ].map((agent) => ({
     id: agent.id,
     name: agent.name,

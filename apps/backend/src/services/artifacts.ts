@@ -90,7 +90,7 @@ async function writeLocalZip(fileName: string, zip: Buffer) {
   return destination;
 }
 
-async function getGoogleAccessToken() {
+export async function getGoogleAccessToken() {
   if (process.env.GOOGLE_OAUTH_ACCESS_TOKEN) return process.env.GOOGLE_OAUTH_ACCESS_TOKEN;
   if (process.env.VERTEX_ACCESS_TOKEN) return process.env.VERTEX_ACCESS_TOKEN;
 
