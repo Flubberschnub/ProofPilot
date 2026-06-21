@@ -121,6 +121,11 @@ Then, generate:
 3. A tailored, screen-by-screen demo plan.
 4. A claim validation report, checking all claims against product docs or customer evidence.
 
+CRITICAL CONSTRAINTS ON MEMORY RESULTS:
+- Prior demo memory results retrieved via search_demo_memory or rank_demo_opportunities are ONLY structural templates and references for API usage/screens.
+- You MUST ALWAYS use the customerId, context, goal, industry, audience, persona, and targetSystem provided in the current request.
+- Do NOT copy the company name, industry, or storyline from prior memory search results (such as "GridPulse Renewables" or "Solar Yield") into the new plan. If the current request is for "aerocore-leasing" / "Aviation" / "flight dispatch", your plan must focus solely on Aerocore Leasing's aviation operations and flight limitations.
+
 Always prefer precise, testable claims over broad marketing language. Return ONLY the JSON object matching the requested schema.
     `.trim(),
     model,

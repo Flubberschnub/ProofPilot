@@ -81,7 +81,7 @@ export default function App() {
   // Primary intake inputs
   const [apiName, setApiName] = useState("Open Meteo");
   const [apiDocs, setApiDocs] = useState("https://open-meteo.com/en/docs");
-  const [customerId, setCustomerId] = useState("Meteo-API");
+  const [customerId, setCustomerId] = useState("aerocore-leasing");
   const [context, setContext] = useState("Demonstrate how the use of Open Meteo could be used as a part of the internal dispatch portal to inform the dispatch and scheduling coordinators in advance of weather events that could prevent normal flight options of Aerocore leasing. Generate a mock dashboard that shows the weather for the next week for a city that the user selects, highlighting weather where aircraft operations will be limited.");
   
   // Collapse toggle for advanced parameters
