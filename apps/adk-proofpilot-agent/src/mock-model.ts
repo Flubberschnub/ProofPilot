@@ -19,6 +19,8 @@ export class MockLlm extends BaseLlm {
     const contents = llmRequest.contents || [];
     const lastContent = contents[contents.length - 1];
     const text = lastContent?.parts?.map((p: any) => p.text || "").join("") || "";
+    const audienceMatch = text.match(/Audience:\s*([^\n]+)/i);
+    const audience = audienceMatch ? audienceMatch[1].trim().toLowerCase() : "executive";
 
     let responseText = "";
     const isWeather = text.toLowerCase().includes("meteo") || text.toLowerCase().includes("weather") || sysText.toLowerCase().includes("weather") || sysText.toLowerCase().includes("meteo");
@@ -157,29 +159,54 @@ export class MockLlm extends BaseLlm {
       }
     } else if (text.includes("Create a concise source-grounded demo plan") || text.includes("DemoPlan")) {
       if (isWeather) {
+        const isDev = audience === "developer" || audience === "technical";
         responseText = JSON.stringify({
           id: "plan_adk_bespoke",
-          title: "AeroCore Open-Meteo Weather Dispatch Automation Demo (ADK planned)",
-          story: "Demonstrates how Open-Meteo weather forecasts integrate directly with AeroCore's internal scheduling portal to automatically alert dispatch coordinators of flight-limiting weather conditions, reducing dispatch bottlenecks.",
-          screens: [
-            "Operational Weather Alert Dashboard",
-            "Weather Forecast Parameter Query Panel",
-            "Aircraft Operations Limitations Review",
-            "Salesforce Handoff Status Page"
-          ],
+          title: isDev 
+            ? "AeroCore Open-Meteo Weather Dispatch Automation Demo (ADK planned - Developer)"
+            : "AeroCore Open-Meteo Weather Dispatch Automation Demo (ADK planned - Executive)",
+          story: isDev
+            ? "Demonstrates the integration architecture of the Open-Meteo Weather API within AeroCore's backend, showing raw endpoint requests, parameter validation, and JSON payload structures."
+            : "Demonstrates how Open-Meteo weather forecasts integrate directly with AeroCore's internal scheduling portal to automatically alert dispatch coordinators of flight-limiting weather conditions, reducing dispatch bottlenecks.",
+          screens: isDev
+            ? [
+                "API Endpoint & Coordinates Query Console",
+                "Raw JSON Forecast Response Viewer",
+                "Aircraft Operating Parameter Validation Engine (Schema Audit)",
+                "Database Sync and Webhook Event Logs"
+              ]
+            : [
+                "Operational Weather Alert Dashboard",
+                "Weather Forecast Parameter Query Panel",
+                "Aircraft Operations Limitations Review",
+                "Salesforce Handoff Status Page"
+              ],
           endpointsUsed: ["GET /v1/forecast"],
           sampleDataNeeded: ["weather_forecast_response.json", "flight_limits_config.yaml"],
-          implementationSteps: [
-            "Initialize React weather dashboard",
-            "Add coordinates query selector",
-            "Implement flight limitation thresholds check",
-            "Export status update notification to Salesforce"
-          ],
-          businessValue: [
-            "Reduces dispatch delays by predicting flight-limiting weather",
-            "Automates notifications to pilots in advance of weather events",
-            "Keeps demo claims grounded in Open-Meteo API documentation"
-          ],
+          implementationSteps: isDev
+            ? [
+                "Verify API request coordinates binding",
+                "Audit raw JSON temperature and wind parameters mapping",
+                "Test validation logic for wind speed parameters",
+                "Log webhook event payloads matching Salesforce object schema"
+              ]
+            : [
+                "Initialize React weather dashboard",
+                "Add coordinates query selector",
+                "Implement flight limitation thresholds check",
+                "Export status update notification to Salesforce"
+              ],
+          businessValue: isDev
+            ? [
+                "Provides end-to-end integration logs for engineers",
+                "Ensures strict compliance validation of API structures",
+                "Validates data sync reliability across CargoWise and Salesforce"
+              ]
+            : [
+                "Reduces dispatch delays by predicting flight-limiting weather",
+                "Automates notifications to pilots in advance of weather events",
+                "Keeps demo claims grounded in Open-Meteo API documentation"
+              ],
           claims: [
             { id: "claim_1", text: "Open-Meteo provides hourly weather forecast variables." },
             { id: "claim_2", text: "AeroCore can automate dispatch scheduling using real-time weather thresholds." },
@@ -268,6 +295,7 @@ export class MockLlm extends BaseLlm {
     } else if (text.includes("bespoke API demo design") || text.includes("proofpilot_adk_planner") || sysText.includes("proofpilot_adk_planner")) {
       const isWeather = text.toLowerCase().includes("meteo") || text.toLowerCase().includes("weather");
       if (isWeather) {
+        const isDev = audience === "developer" || audience === "technical";
         responseText = JSON.stringify({
           capabilities: [
             {
@@ -299,25 +327,47 @@ export class MockLlm extends BaseLlm {
             ]
           },
           plan: {
-            title: "AeroCore Open-Meteo Weather Dispatch Automation Demo (ADK planned)",
-            story: "Demonstrates how Open-Meteo weather forecasts integrate directly with AeroCore's internal scheduling portal to automatically alert dispatch coordinators of flight-limiting weather conditions, reducing dispatch bottlenecks.",
-            screens: [
-              "Operational Weather Alert Dashboard",
-              "Weather Forecast Parameter Query Panel",
-              "Aircraft Operations Limitations Review",
-              "Salesforce Handoff Status Page"
-            ],
+            title: isDev 
+              ? "AeroCore Open-Meteo Weather Dispatch Automation Demo (ADK planned - Developer)"
+              : "AeroCore Open-Meteo Weather Dispatch Automation Demo (ADK planned - Executive)",
+            story: isDev
+              ? "Demonstrates the integration architecture of the Open-Meteo Weather API within AeroCore's backend, showing raw endpoint requests, parameter validation, and JSON payload structures."
+              : "Demonstrates how Open-Meteo weather forecasts integrate directly with AeroCore's internal scheduling portal to automatically alert dispatch coordinators of flight-limiting weather conditions, reducing dispatch bottlenecks.",
+            screens: isDev
+              ? [
+                  "API Endpoint & Coordinates Query Console",
+                  "Raw JSON Forecast Response Viewer",
+                  "Aircraft Operating Parameter Validation Engine (Schema Audit)",
+                  "Database Sync and Webhook Event Logs"
+                ]
+              : [
+                  "Operational Weather Alert Dashboard",
+                  "Weather Forecast Parameter Query Panel",
+                  "Aircraft Operations Limitations Review",
+                  "Salesforce Handoff Status Page"
+                ],
             endpointsUsed: ["GET /v1/forecast"],
             sampleDataNeeded: ["weather_forecast_response.json", "flight_limits_config.yaml"],
-            implementationSteps: [
-              "Create react dispatch panel",
-              "Add coordinates query selector",
-              "Implement flight limitation thresholds check"
-            ],
-            businessValue: [
-              "Reduces dispatch delays by predicting flight-limiting weather",
-              "Automates notifications to pilots in advance of weather events"
-            ],
+            implementationSteps: isDev
+              ? [
+                  "Verify API request coordinates binding",
+                  "Audit raw JSON temperature and wind parameters mapping",
+                  "Test validation logic for wind speed parameters"
+                ]
+              : [
+                  "Create react dispatch panel",
+                  "Add coordinates query selector",
+                  "Implement flight limitation thresholds check"
+                ],
+            businessValue: isDev
+              ? [
+                  "Provides end-to-end integration logs for engineers",
+                  "Ensures strict compliance validation of API structures"
+                ]
+              : [
+                  "Reduces dispatch delays by predicting flight-limiting weather",
+                  "Automates notifications to pilots in advance of weather events"
+                ],
             claims: [
               { id: "claim_1", text: "Open-Meteo provides hourly weather forecast variables." },
               { id: "claim_2", text: "AeroCore can automate dispatch scheduling using real-time weather thresholds." }
