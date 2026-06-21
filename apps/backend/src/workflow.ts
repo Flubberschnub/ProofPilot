@@ -9,7 +9,8 @@ import {
   packageGeneratorAgent,
   sourceCapabilityAgent,
   validationAgent,
-  testerAgent
+  testerAgent,
+  codeRepairAgent
 } from "./agents/workflow-agents.js";
 
 export const previewCache = new Map<string, {
@@ -19,6 +20,7 @@ export const previewCache = new Map<string, {
 }>();
 import { createAgentContext, runAgent } from "./agents/runtime.js";
 import { describeModelClient } from "./models/index.js";
+import { saveDemoPreview } from "./services/previews.js";
 
 export async function runProofPilotWorkflow(input: WorkflowRequest) {
   const model = describeModelClient();
@@ -124,15 +126,35 @@ export async function runProofPilotWorkflow(input: WorkflowRequest) {
     claimReport
   }, agentContext);
 
-  const tester = await runAgent(testerAgent, {
-    files: generatedPackage.files
-  }, agentContext);
+  let files = generatedPackage.files;
+  let tester = await runAgent(testerAgent, { files }, agentContext);
+
+  let retryCount = 0;
+  const maxRetries = 2;
+
+  while (!tester.passed && retryCount < maxRetries) {
+    retryCount++;
+    console.log(`[Self-Healing] Code validation failed. Initiating repair attempt ${retryCount}/${maxRetries}...`);
+    
+    const repairResult = await runAgent(codeRepairAgent, {
+      files,
+      errorMsg: tester.message,
+      plan,
+      input: intake.input
+    }, agentContext);
+
+    files = repairResult.files;
+    tester = await runAgent(testerAgent, { files }, agentContext);
+  }
+
+  // Update the package files with the repaired ones
+  generatedPackage.files = files;
 
   const previewId = `${slugify(plan.title)}-${nanoid(4)}`;
   const appFile = generatedPackage.files.find(f => f.path.endsWith("App.tsx"));
   const cssFile = generatedPackage.files.find(f => f.path.endsWith("style.css"));
   if (appFile && cssFile) {
-    previewCache.set(previewId, {
+    await saveDemoPreview(previewId, {
       apiName: plan.title,
       appCode: appFile.content,
       cssCode: cssFile.content

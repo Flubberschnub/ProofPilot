@@ -7,6 +7,7 @@ import { listWorkflowAgents } from "./agents/workflow-agents.js";
 import { describeModelClient } from "./models/index.js";
 import { downloadGeneratedArtifact } from "./services/artifacts.js";
 import { runProofPilotWorkflow, previewCache } from "./workflow.js";
+import { getDemoPreview } from "./services/previews.js";
 
 dotenv.config();
 
@@ -68,8 +69,8 @@ app.post("/api/workflow/run", async (req, res, next) => {
   }
 });
 
-app.get("/api/preview/:demoId", (req, res) => {
-  const demo = previewCache.get(req.params.demoId);
+app.get("/api/preview/:demoId", async (req, res) => {
+  const demo = await getDemoPreview(req.params.demoId);
   if (!demo) {
     return res.status(404).send("Demo preview not found or expired.");
   }
