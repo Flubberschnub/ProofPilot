@@ -5,7 +5,9 @@ export async function generateDemoFiles(
   plan: DemoPlan,
   claimReport: ClaimReport
 ): Promise<GeneratedFile[]> {
-  const safeClaims = claimReport.claims.map((claim: any) => claim.rewrite ?? claim.text);
+  const safeClaims = claimReport.claims
+    .map((claim: any) => claim.rewrite || claim.text)
+    .filter(Boolean);
 
   const isWeather = 
     input.apiName.toLowerCase().includes("weather") ||
