@@ -273,10 +273,12 @@ export default function App() {
         </div>
         <div className="header-meta">
           <div className="tutorial-btn-wrapper">
-            <button className="tutorial-trigger-btn" onClick={startTutorial}>
+            <button 
+              className={`tutorial-trigger-btn ${!hasSeenTutorial ? "unseen-flash" : ""}`} 
+              onClick={startTutorial}
+            >
               TUTORIAL
             </button>
-            {!hasSeenTutorial && <span className="tutorial-pulse-dot"></span>}
           </div>
           {result && (
             <>
@@ -569,7 +571,6 @@ export default function App() {
       <aside className={`brutalist-panel right-inspection-rail ${tutorialStep === 2 ? "tutorial-highlighted" : ""}`}>
         <div className="panel-header">
           <h2 className="panel-title">Evidence Inspector / METRICS</h2>
-          <span className="panel-station-code">EVID-01</span>
         </div>
         
         {!result ? (
