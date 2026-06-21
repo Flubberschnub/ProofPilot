@@ -401,31 +401,54 @@ function heuristicDemoPlan(input: DemoRequest, capabilities: ApiCapability[], bu
   const persona = input.customerPersona ?? inferPersona(input.context) ?? "the target user";
 
   if (isWeather) {
+    const isDev = input.audience === "developer" || input.audience === "technical";
     return {
       id: "plan_default",
-      title,
-      story: businessContext?.customerId
-        ? `${businessContext.customerId} integrates ${input.apiName} with their internal dispatch portal. The demo showcases how ${persona} views real-time weather alerts and schedules flights around adverse weather events.`
-        : `A dispatch coordination team evaluates ${input.apiName} by walking through a weather-aware flight planning workflow.`,
-      screens: [
-        "Operational Weather Alert Dashboard",
-        "Weather Forecast Parameter Query Panel",
-        "Aircraft Operations Limitations Review",
-        "Salesforce Handoff Status Page"
-      ],
+      title: isDev ? `${title} (Developer)` : `${title} (Executive)`,
+      story: isDev
+        ? `Demonstrates the integration architecture of the Open-Meteo Weather API within AeroCore's backend, showing raw endpoint requests, parameter validation, and JSON payload structures.`
+        : businessContext?.customerId
+          ? `${businessContext.customerId} integrates ${input.apiName} with their internal dispatch portal. The demo showcases how ${persona} views real-time weather alerts and schedules flights around adverse weather events.`
+          : `A dispatch coordination team evaluates ${input.apiName} by walking through a weather-aware flight planning workflow.`,
+      screens: isDev
+        ? [
+            "API Endpoint & Coordinates Query Console",
+            "Raw JSON Forecast Response Viewer",
+            "Aircraft Operating Parameter Validation Engine (Schema Audit)",
+            "Database Sync and Webhook Event Logs"
+          ]
+        : [
+            "Operational Weather Alert Dashboard",
+            "Weather Forecast Parameter Query Panel",
+            "Aircraft Operations Limitations Review",
+            "Salesforce Handoff Status Page"
+          ],
       endpointsUsed: [...new Set(capabilities.flatMap((c) => c.endpoints))].slice(0, 5),
       sampleDataNeeded: ["weather_forecast_response.json", "flight_limits_config.yaml"],
-      implementationSteps: [
-        "Initialize React weather dashboard",
-        "Add coordinates query selector",
-        "Implement flight limitation thresholds check",
-        "Export status update notification to Salesforce"
-      ],
-      businessValue: [
-        "Reduces dispatch delays by predicting flight-limiting weather",
-        "Automates notifications to pilots in advance of weather events",
-        "Keeps demo claims grounded in Open-Meteo API documentation"
-      ],
+      implementationSteps: isDev
+        ? [
+            "Verify API request coordinates binding",
+            "Audit raw JSON temperature and wind parameters mapping",
+            "Test validation logic for wind speed parameters",
+            "Log webhook event payloads matching Salesforce object schema"
+          ]
+        : [
+            "Initialize React weather dashboard",
+            "Add coordinates query selector",
+            "Implement flight limitation thresholds check",
+            "Export status update notification to Salesforce"
+          ],
+      businessValue: isDev
+        ? [
+            "Provides end-to-end integration logs for engineers",
+            "Ensures strict compliance validation of API structures",
+            "Validates data sync reliability across CargoWise and Salesforce"
+          ]
+        : [
+            "Reduces dispatch delays by predicting flight-limiting weather",
+            "Automates notifications to pilots in advance of weather events",
+            "Keeps demo claims grounded in Open-Meteo API documentation"
+          ],
       claims: [
         { id: "claim_1", text: `${input.apiName} provides hourly weather forecast variables.` },
         { id: "claim_2", text: `AeroCore can automate dispatch scheduling using real-time weather thresholds.` },
