@@ -104,6 +104,63 @@ export default function App() {
   // Simulated live progress step timer
   const [activeStationIdx, setActiveStationIdx] = useState(0);
 
+  // Tutorial walkthrough states
+  const [tutorialStep, setTutorialStep] = useState<number | null>(null);
+  const [hasSeenTutorial, setHasSeenTutorial] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const tutorialSteps = [
+    {
+      selector: ".main-intake-form",
+      title: "1. Input API & Context Specs",
+      text: "Fill in the API Name, paste the documentation (JSON/Markdown/URL), and write a Demo Brief describing the target customer scenario."
+    },
+    {
+      selector: ".left-rail",
+      title: "2. Track Ingestion & Build Stages",
+      text: "Monitor this progressive progress bar as specialized agents intake the spec, verify claims, validate code integrity, and generate the code package."
+    },
+    {
+      selector: ".right-inspection-rail",
+      title: "3. Inspect Claims & Outputs",
+      text: "Once completed, open the Live Preview URL to interact with the generated demo app, check source-grounded claims, or download the Git repository package."
+    },
+    {
+      selector: ".action-button",
+      title: "4. Run Demo Route",
+      text: "Click the prominent \"RUN DEMO ROUTE\" button to launch the autonomous agent verification pipeline, build the frontend, and deploy the Cloud Run instance."
+    }
+  ];
+
+  function startTutorial() {
+    setTutorialStep(0);
+    setHasSeenTutorial(true);
+  }
+
+  function getTooltipStyle(step: number) {
+    if (windowWidth < 1200) {
+      return { left: "50%", top: "50%", transform: "translate(-50%, -50%)" };
+    }
+    switch (step) {
+      case 0: // Ingestion Form
+        return { left: "300px", top: "250px" };
+      case 1: // Left rail
+        return { left: "300px", top: "250px" };
+      case 2: // Right rail
+        return { right: "380px", top: "250px" };
+      case 3: // Run button
+        return { left: "300px", top: "450px" };
+      default:
+        return { left: "50%", top: "50%", transform: "translate(-50%, -50%)" };
+    }
+  }
+
   useEffect(() => {
     let intervalId: any;
     if (loading) {
@@ -215,6 +272,12 @@ export default function App() {
           <span className="header-subtitle">Autonomous validation and live preview generation for enterprise API integrations</span>
         </div>
         <div className="header-meta">
+          <div className="tutorial-btn-wrapper">
+            <button className="tutorial-trigger-btn" onClick={startTutorial}>
+              TUTORIAL
+            </button>
+            {!hasSeenTutorial && <span className="tutorial-pulse-dot"></span>}
+          </div>
           {result && (
             <>
               <span>MODEL: {result.model.provider.toUpperCase()} ({result.model.model})</span>
@@ -226,7 +289,7 @@ export default function App() {
       </header>
 
       {/* 2. Left Rail: Process Stages */}
-      <aside className="brutalist-panel left-rail">
+      <aside className={`brutalist-panel left-rail ${tutorialStep === 1 ? "tutorial-highlighted" : ""}`}>
         <div className="panel-header">
           <h2 className="panel-title">Process Stages</h2>
         </div>
@@ -334,7 +397,7 @@ export default function App() {
       </aside>
 
       {/* 3. Center Area: Intake Form and Plan Output */}
-      <main className="brutalist-panel">
+      <main className={`brutalist-panel main-intake-form ${tutorialStep === 0 ? "tutorial-highlighted" : ""}`}>
         <div className="panel-header">
           <h2 className="panel-title">API & context settings</h2>
           <span className="panel-station-code">MAIN-FORM</span>
@@ -414,7 +477,7 @@ export default function App() {
             </div>
           )}
 
-          <button className="action-button" onClick={runWorkflow} disabled={loading}>
+          <button className={`action-button ${tutorialStep === 3 ? "tutorial-highlighted" : ""}`} onClick={runWorkflow} disabled={loading}>
             {loading ? "ROUTE GENERATING..." : "RUN DEMO ROUTE"}
           </button>
 
@@ -503,7 +566,7 @@ export default function App() {
       </main>
 
       {/* 4. Right Inspection Rail: Evidence and business signals */}
-      <aside className="brutalist-panel right-inspection-rail">
+      <aside className={`brutalist-panel right-inspection-rail ${tutorialStep === 2 ? "tutorial-highlighted" : ""}`}>
         <div className="panel-header">
           <h2 className="panel-title">Evidence Inspector / METRICS</h2>
           <span className="panel-station-code">EVID-01</span>
@@ -583,6 +646,51 @@ export default function App() {
             )}
           </div>
         </footer>
+      )}
+
+      {/* Tutorial Overlay & Dialog */}
+      {tutorialStep !== null && (
+        <>
+          <div className="tutorial-overlay-mask" onClick={() => setTutorialStep(null)}></div>
+          <div className="tutorial-tooltip-dialog" style={getTooltipStyle(tutorialStep)}>
+            <h3 style={{ fontSize: "14px", fontWeight: "900", marginBottom: "8px", fontFamily: "var(--font-jp)", textTransform: "uppercase" }}>
+              {tutorialSteps[tutorialStep].title}
+            </h3>
+            <p style={{ fontSize: "12.5px", lineHeight: "1.5", color: "#333", marginBottom: "16px" }}>
+              {tutorialSteps[tutorialStep].text}
+            </p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <button 
+                className="tutorial-nav-btn secondary"
+                onClick={() => setTutorialStep(null)}
+              >
+                Skip Tour
+              </button>
+              <div style={{ display: "flex", gap: "8px" }}>
+                {tutorialStep > 0 && (
+                  <button 
+                    className="tutorial-nav-btn"
+                    onClick={() => setTutorialStep(prev => prev !== null ? prev - 1 : null)}
+                  >
+                    Back
+                  </button>
+                )}
+                <button 
+                  className="tutorial-nav-btn primary"
+                  onClick={() => {
+                    if (tutorialStep < tutorialSteps.length - 1) {
+                      setTutorialStep(prev => prev !== null ? prev + 1 : null);
+                    } else {
+                      setTutorialStep(null);
+                    }
+                  }}
+                >
+                  {tutorialStep === tutorialSteps.length - 1 ? "Finish" : "Next Step"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

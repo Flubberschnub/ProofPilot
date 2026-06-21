@@ -610,3 +610,116 @@ body {
 .tab-item:hover {
   background: #EAE8DE;
 }
+
+/* Tutorial styles */
+.tutorial-btn-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.tutorial-trigger-btn {
+  background: #333;
+  color: var(--paper-white);
+  border: 1px solid var(--track-gray);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  font-weight: 700;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.tutorial-trigger-btn:hover {
+  background: var(--ginza-orange);
+  border-color: var(--ink-black);
+  color: var(--ink-black);
+}
+
+.tutorial-pulse-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--ginza-orange);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(243, 151, 0, 0.7);
+  animation: pulseDot 1.6s infinite;
+  pointer-events: none;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(243, 151, 0, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(243, 151, 0, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(243, 151, 0, 0); }
+}
+
+.tutorial-overlay-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.tutorial-highlighted {
+  position: relative !important;
+  z-index: 1001 !important;
+  box-shadow: 0 0 0 4px var(--ginza-orange), 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  pointer-events: none;
+}
+
+.tutorial-tooltip-dialog {
+  position: fixed;
+  z-index: 1002;
+  background: white;
+  border: 3px solid var(--ink-black);
+  padding: 20px;
+  width: 320px;
+  box-shadow: 8px 8px 0px var(--ink-black);
+  border-radius: 2px;
+  color: var(--ink-black);
+  transition: all 0.3s ease;
+}
+
+.tutorial-nav-btn {
+  background: var(--paper-white);
+  color: var(--ink-black);
+  border: 2px solid var(--ink-black);
+  padding: 6px 12px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px var(--ink-black);
+  transition: all 0.1s;
+}
+
+.tutorial-nav-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--ink-black);
+}
+
+.tutorial-nav-btn.primary {
+  background: var(--ginza-orange);
+  color: var(--paper-white);
+}
+
+.tutorial-nav-btn.secondary {
+  border-color: #777;
+  color: #777;
+  box-shadow: none;
+}
+
+.tutorial-nav-btn.secondary:hover {
+  border-color: var(--ink-black);
+  color: var(--ink-black);
+  background: #eee;
+  transform: none;
+}
+
