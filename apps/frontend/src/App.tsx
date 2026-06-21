@@ -396,6 +396,22 @@ export default function App() {
             </div>
           </div>
         </div>
+        
+        {/* Buttons below the Cargo Manifest */}
+        {result && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "16px 20px 20px 20px", borderTop: "1px dashed var(--track-gray)", marginTop: "16px" }}>
+            {result.validationPassed && result.previewUrl && (
+              <a className="download-btn" style={{ background: "var(--tozai-blue)", width: "100%", justifyContent: "center" }} href={apiUrl(result.previewUrl)} target="_blank" rel="noopener noreferrer">
+                🌐 RUN LIVE DEMO ON GCP
+              </a>
+            )}
+            {artifactDownloadUrl && (
+              <a className="download-btn" style={{ width: "100%", justifyContent: "center" }} href={artifactDownloadUrl} download={artifact?.fileName}>
+                📥 DOWNLOAD ZIP CARGO (.ZIP)
+              </a>
+            )}
+          </div>
+        )}
       </aside>
 
       {/* 3. Center Area: Intake Form and Plan Output */}
@@ -627,24 +643,12 @@ export default function App() {
 
       {/* 5. Bottom Output Strip: GitLab & Zip manifest */}
       {result && (
-        <footer className="bottom-output-strip">
+        <footer className="bottom-output-strip" style={{ display: "block" }}>
           <div className="package-meta">
             <h3 className="package-meta-title">DEMO CARGO READY / PACKAGE</h3>
             <p className="package-meta-details">
               MANIFEST: {result.files.length} FILES COMMITTED // PACKAGE_CHECK: {result.packageCheck.status.toUpperCase()} // GITLAB_URL: {result.gitlab.url || "N/A"}
             </p>
-          </div>
-          <div style={{ display: "flex", gap: "12px" }}>
-            {result.validationPassed && result.previewUrl && (
-              <a className="download-btn" style={{ background: "var(--tozai-blue)" }} href={apiUrl(result.previewUrl)} target="_blank" rel="noopener noreferrer">
-                🌐 RUN LIVE DEMO ON GCP
-              </a>
-            )}
-            {artifactDownloadUrl && (
-              <a className="download-btn" href={artifactDownloadUrl} download={artifact?.fileName}>
-                📥 DOWNLOAD ZIP CARGO (.ZIP)
-              </a>
-            )}
           </div>
         </footer>
       )}
