@@ -169,6 +169,12 @@ export default function App() {
   // Metro station status helper
   const stationsOrder = ["IN", "DX", "BD", "SG", "PL", "CL", "VL", "TS", "PK"];
 
+  const progressPercent = loading
+    ? (activeStationIdx / (stationsOrder.length - 1)) * 100
+    : result
+      ? 100
+      : 0;
+
   function getStationStatus(stationId: string) {
     if (loading) {
       const idx = stationsOrder.indexOf(stationId);
@@ -205,8 +211,8 @@ export default function App() {
       {/* 1. Header Strip */}
       <header className="header-strip">
         <div className="header-title-group">
-          <h1 className="header-title">PROOFPILOT // OPERATIONS ROUTE</h1>
-          <span className="header-subtitle">URBAN DEMO GENERATOR</span>
+          <h1 className="header-title">PROOFPILOT</h1>
+          <span className="header-subtitle">Autonomous validation and live preview generation for enterprise API integrations</span>
         </div>
         <div className="header-meta">
           {result && (
@@ -219,14 +225,14 @@ export default function App() {
         </div>
       </header>
 
-      {/* 2. Left Rail: Transit Route Map */}
+      {/* 2. Left Rail: Process Stages */}
       <aside className="brutalist-panel left-rail">
         <div className="panel-header">
-          <h2 className="panel-title">Route Map / SYSTEM LINES</h2>
-          <span className="panel-station-code">T-LINE</span>
+          <h2 className="panel-title">Process Stages</h2>
         </div>
         <div className="metro-line-container">
-          <div className={`metro-track ${loading ? "active" : ""}`}></div>
+          <div className="metro-track-bg"></div>
+          <div className="metro-track-fill" style={{ height: `${progressPercent}%` }}></div>
           
           <div className={`metro-station ${getStationStatus("IN")}`}>
             <div className="station-indicator"></div>
@@ -330,7 +336,7 @@ export default function App() {
       {/* 3. Center Area: Intake Form and Plan Output */}
       <main className="brutalist-panel">
         <div className="panel-header">
-          <h2 className="panel-title">Console Ingestion / INPUT FORM</h2>
+          <h2 className="panel-title">API & context settings</h2>
           <span className="panel-station-code">MAIN-FORM</span>
         </div>
         
@@ -365,7 +371,7 @@ export default function App() {
             <textarea
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              rows={2}
+              rows={6}
             />
           </div>
 
