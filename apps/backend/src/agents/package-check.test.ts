@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { validateCodeIntegrity } from "./package-check.js";
 import type { GeneratedFile } from "../types.js";
 import { codeRepairAgent } from "./workflow-agents.js";
+import { createAgentContext } from "./runtime.js";
+import { describeModelClient } from "../models/index.js";
 
 describe("validateCodeIntegrity", () => {
   it("passes for valid App.tsx with balanced tags and defined/global functions", () => {
@@ -88,9 +90,9 @@ describe("validateCodeIntegrity", () => {
     const result = await codeRepairAgent.run({
       files: mockFiles,
       errorMsg: "ReferenceError: escapeForTemplate is not defined",
-      plan: { title: "Title", story: "Story", screens: ["Screen 1"], claims: [], endpointsUsed: [], sampleDataNeeded: [], implementationSteps: [], businessValue: [] },
-      input: { apiName: "API", docsText: "Docs", industry: "Industry", goal: "Goal" }
-    });
+      plan: { id: "test-plan-id", title: "Title", story: "Story", screens: ["Screen 1"], claims: [], endpointsUsed: [], sampleDataNeeded: [], implementationSteps: [], businessValue: [] },
+      input: { apiName: "API", docsText: "Docs", industry: "Industry", audience: "developer", goal: "Goal", liveApiAllowed: false }
+    }, createAgentContext(describeModelClient()));
 
     const appFile = result.files.find(f => f.path.endsWith("App.tsx"));
     expect(appFile).toBeDefined();
