@@ -22,6 +22,7 @@ type WorkflowResult = {
   businessContext?: {
     customerId?: string;
     chunks: Array<{ id: string; title: string }>;
+    evidence?: Array<{ id: string; title: string; sourcePath?: string; domain?: string; text?: string }>;
     signals: Array<{ id: string; title: string; summary: string; department?: string; metric?: string; evidenceChunkIds: string[] }>;
   };
   capabilities: Array<{ name: string; description: string; endpoints: string[] }>;
@@ -86,6 +87,11 @@ function renderParsedText(text: string) {
     }
     return part;
   });
+}
+
+function getClaimEvidenceSources(evidenceChunkIds: string[] | undefined, evidenceList: any[] | undefined) {
+  if (!evidenceChunkIds || !evidenceList) return [];
+  return evidenceList.filter((chunk: any) => evidenceChunkIds.includes(chunk.id));
 }
 
 export default function App() {
@@ -568,6 +574,16 @@ export default function App() {
                                 <strong>Rewrite: </strong> {claim.rewrite}
                               </div>
                             )}
+                            {getClaimEvidenceSources(claim.evidenceChunkIds, result.businessContext?.evidence).length > 0 && (
+                              <div style={{ fontSize: "11px", color: "var(--track-gray)", marginTop: "4px" }}>
+                                <strong>Source Context:</strong>{" "}
+                                {getClaimEvidenceSources(claim.evidenceChunkIds, result.businessContext?.evidence).map((src: any) => (
+                                  <span key={src.id} className="screen-badge" style={{ background: "#eae8de", color: "#333", marginRight: "4px", fontSize: "10px", padding: "1px 4px", textTransform: "none" }}>
+                                    📄 {src.sourcePath || src.title}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </td>
                           <td>
                             <span className={`gate-badge ${claim.status}`}>{claim.status}</span>
@@ -634,6 +650,15 @@ export default function App() {
                   <div style={{ marginTop: "4px", fontSize: "10px", color: "var(--track-gray)" }}>
                     DEPT: {signal.department || "N/A"} / METRIC: {signal.metric || "N/A"}
                   </div>
+                  {getClaimEvidenceSources(signal.evidenceChunkIds, result.businessContext?.evidence).length > 0 && (
+                    <div style={{ marginTop: "6px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                      {getClaimEvidenceSources(signal.evidenceChunkIds, result.businessContext?.evidence).map((src: any) => (
+                        <span key={src.id} className="screen-badge" style={{ background: "#eae8de", color: "#444", fontSize: "9px", padding: "2px 4px", textTransform: "none" }}>
+                          📄 {src.sourcePath || src.title}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
