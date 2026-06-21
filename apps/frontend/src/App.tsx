@@ -77,6 +77,17 @@ Approves extraction.
 ## POST /exports
 Exports approved data as JSON to external integration layers. Does not integrate directly with CRMs/ERPs.`;
 
+function renderParsedText(text: string) {
+  if (!text) return "";
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index} style={{ fontWeight: 800 }}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 export default function App() {
   // Primary intake inputs
   const [apiName, setApiName] = useState("Open Meteo");
@@ -527,9 +538,11 @@ export default function App() {
                       DEMO FLOW STATIONS (SCREENS)
                     </h4>
                     {result.plan.screens.map((screen, idx) => (
-                      <div key={screen} className="screen-line">
-                        <span className="screen-badge">STATION 0{idx + 1}</span>
-                        <span style={{ fontSize: "13px", fontWeight: "700" }}>{screen}</span>
+                      <div key={screen} className="screen-line" style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                        <span className="screen-badge" style={{ flexShrink: 0 }}>STATION 0{idx + 1}</span>
+                        <span style={{ fontSize: "13px", fontWeight: "normal", lineHeight: "1.5" }}>
+                          {renderParsedText(screen)}
+                        </span>
                       </div>
                     ))}
                   </div>
