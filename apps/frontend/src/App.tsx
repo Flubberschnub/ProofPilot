@@ -452,7 +452,7 @@ export default function App() {
                 onChange={(e) => setCustomerId(e.target.value)}
               />
               <div style={{ fontSize: "11px", color: "var(--track-gray)", marginTop: "4px", lineHeight: "1.4" }}>
-                💡 Tip: Type a customer directory name. Sample data is available in the{" "}
+                Note: Sample data is available in the{" "}
                 <a 
                   href="https://github.com/Flubberschnub/ProofPilot/tree/main/sample-data" 
                   target="_blank" 
