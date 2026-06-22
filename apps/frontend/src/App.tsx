@@ -136,7 +136,7 @@ export default function App() {
     {
       selector: ".main-intake-form",
       title: "1. Input API & Context Specs",
-      text: "Fill in the API Name, paste the documentation (JSON/Markdown/URL), and write a Demo Brief describing the target customer scenario."
+      text: "Fill in the API Name, paste the documentation (JSON/Markdown/URL), and write a Demo Brief. Note: Use a valid customer ID (like 'aerocore-leasing') corresponding to a folder in the GitHub sample-data repository."
     },
     {
       selector: ".left-rail",
@@ -451,6 +451,18 @@ export default function App() {
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
               />
+              <div style={{ fontSize: "11px", color: "var(--track-gray)", marginTop: "4px", lineHeight: "1.4" }}>
+                💡 Tip: Type a customer directory name. Sample data is available in the{" "}
+                <a 
+                  href="https://github.com/Flubberschnub/ProofPilot/tree/main/sample-data" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style={{ color: "var(--tozai-blue)", textDecoration: "underline", fontWeight: "bold" }}
+                >
+                  GitHub sample-data folder
+                </a>{" "}
+                (e.g. <code>aerocore-leasing</code>).
+              </div>
             </div>
           </div>
 
