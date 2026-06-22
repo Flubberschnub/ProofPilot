@@ -127,7 +127,8 @@ export async function generateDemoPlan(input: DemoRequest, capabilities: ApiCapa
         })) ?? []
       }, null, 2),
       "",
-      "Generate a realistic demo plan. Keep claims testable against the API documentation and customer business evidence."
+      "Generate a realistic demo plan. Keep claims testable against the API documentation and customer business evidence.",
+      "CRITICAL: The screens array must contain ONLY clean, minimal screen names/titles (e.g. 'Screen 1: AeroCore Dispatch Dashboard') under 60 characters. Do NOT include roles, storylines, visuals, actions, or API payloads in the screens strings."
     ].join("\n"),
     schema: {
       id: "plan_default",
