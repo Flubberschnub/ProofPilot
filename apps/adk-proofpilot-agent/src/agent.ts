@@ -27,8 +27,8 @@ export const ADKOutputSchema = z.object({
       id: z.string(),
       title: z.string(),
       summary: z.string(),
-      department: z.string().optional(),
-      metric: z.string().optional(),
+      department: z.string(),
+      metric: z.string(),
       evidenceChunkIds: z.array(z.string())
     }))
   }),
@@ -49,9 +49,9 @@ export const ADKOutputSchema = z.object({
     claims: z.array(z.object({
       id: z.string(),
       text: z.string(),
-      status: z.enum(["supported", "inferred", "unsupported", "marketing", "unknown"]),
+      status: z.string(),
       evidenceChunkIds: z.array(z.string()),
-      rewrite: z.string().optional()
+      rewrite: z.string()
     })),
     summary: z.object({
       supported: z.number(),
