@@ -105,6 +105,17 @@ export default function App() {
               <pre>{JSON.stringify({ exported: true, fields: mockFields, timestamp: new Date().toISOString() }, null, 2)}</pre>
             </div>
           )}
+
+          {step > 3 && (
+            <div style={{ lineHeight: "1.6" }}>
+              <p>This screen demonstrates the custom workflow interface designed for <strong>{screens[step]}</strong>.</p>
+              <p style={{ color: "var(--text-muted)", marginTop: "12px" }}>The integration layer processes local triggers and schedules updates according to active policy rules.</p>
+              <div style={{ border: "1px dashed var(--border-color)", padding: "16px", borderRadius: "10px", marginTop: "16px", background: "rgba(255,255,255,0.01)" }}>
+                <span className="badge badge-primary" style={{ marginBottom: "8px" }}>Active Integration Step</span>
+                <p style={{ fontSize: "13px", margin: 0 }}>Verified API calls execute successfully in the background to sync data with the target environment.</p>
+              </div>
+            </div>
+          )}
         </section>
       </section>
 
