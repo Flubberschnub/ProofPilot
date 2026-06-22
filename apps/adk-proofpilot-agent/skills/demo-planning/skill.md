@@ -20,3 +20,7 @@ This skill outlines how to build a tailored demo plan based on API capabilities 
 - Prior demo memory results retrieved from `search_demo_memory` or `rank_demo_opportunities` are strictly for structural reference, ideas, and API endpoint alignment.
 - **NEVER** copy the customer name (e.g. "GridPulse Renewables"), industry, specific scenarios (e.g. "Solar Yield & Wind Safety"), or storylines of prior demos retrieved from memory.
 - You **MUST** strictly preserve and utilize the current request's target customer name (`customerId`, e.g. "Aerocore Leasing" or "aerocore-leasing"), customer business context, target persona, target system, goals, and industry (e.g. "Aviation") in the generated demo plan title, story, and screens.
+
+### Minimal Screens Constraint
+- The generated screens list MUST contain ONLY clean, minimal screen titles (e.g., "Screen 1: AeroCore Dispatch Dashboard", "Screen 2: Pre-Flight Safety Audit Console").
+- **NEVER** append roles, visuals, storylines, action descriptions, or API request/response payloads into the screen strings. Keep each screen title under 60 characters.

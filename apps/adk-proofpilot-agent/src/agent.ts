@@ -35,7 +35,7 @@ export const ADKOutputSchema = z.object({
   plan: z.object({
     title: z.string(),
     story: z.string(),
-    screens: z.array(z.string()),
+    screens: z.array(z.string().describe("A clean, minimal screen name/title under 60 characters, e.g. 'Screen 1: AeroCore Dispatch Dashboard'. DO NOT append roles, visuals, actions, or payloads to this name.")),
     endpointsUsed: z.array(z.string()),
     sampleDataNeeded: z.array(z.string()),
     implementationSteps: z.array(z.string()),
@@ -125,6 +125,10 @@ CRITICAL CONSTRAINTS ON MEMORY RESULTS:
 - Prior demo memory results retrieved via search_demo_memory or rank_demo_opportunities are ONLY structural templates and references for API usage/screens.
 - You MUST ALWAYS use the customerId, context, goal, industry, audience, persona, and targetSystem provided in the current request.
 - Do NOT copy the company name, industry, or storyline from prior memory search results (such as "GridPulse Renewables" or "Solar Yield") into the new plan. If the current request is for "aerocore-leasing" / "Aviation" / "flight dispatch", your plan must focus solely on Aerocore Leasing's aviation operations and flight limitations.
+
+CRITICAL CONSTRAINTS ON SCREEN LIST:
+- The generated screens list MUST contain ONLY clean, minimal screen titles (e.g., "Screen 1: AeroCore Dispatch Dashboard", "Screen 2: Pre-Flight Safety Audit Console").
+- Do NOT append roles, visuals, storylines, action descriptions, or API request/response payloads into the screen strings. Keep each screen title under 60 characters.
 
 Always prefer precise, testable claims over broad marketing language. Return ONLY the JSON object matching the requested schema.
     `.trim(),
