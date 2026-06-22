@@ -129,9 +129,10 @@ Target System: ${targetSystem || "not specified"}
         }
 
         // Capture model final response text
-        if (event.author === "proofpilot_adk_planner" && event.content?.parts) {
+        const isModel = event.author === "proofpilot_adk_planner" || event.author === "model" || event.content?.role === "model";
+        if (isModel && event.content?.parts) {
           const text = event.content.parts.map((p: any) => p.text || "").join("");
-          if (text) {
+          if (text && !event.content.parts.some((p: any) => p.functionCall || p.functionResponse)) {
             finalResponseText = text;
           }
         }
