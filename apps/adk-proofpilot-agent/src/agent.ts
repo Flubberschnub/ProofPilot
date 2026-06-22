@@ -35,7 +35,7 @@ export const ADKOutputSchema = z.object({
   plan: z.object({
     title: z.string(),
     story: z.string(),
-    screens: z.array(z.string().describe("A clean, minimal screen name/title under 60 characters, e.g. 'Screen 1: AeroCore Dispatch Dashboard'. DO NOT append roles, visuals, actions, or payloads to this name.")),
+    screens: z.array(z.string()),
     endpointsUsed: z.array(z.string()),
     sampleDataNeeded: z.array(z.string()),
     implementationSteps: z.array(z.string()),
